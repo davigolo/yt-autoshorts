@@ -18,7 +18,8 @@ Pipeline: **Gemini** (guion) → **edge-tts** (voz + tiempos por palabra) → **
    4. Ejecuta en local y autoriza con la cuenta del canal:
       ```bash
       python -m venv .venv && .venv/bin/pip install -r requirements.txt
-      .venv/bin/python scripts/get_token.py
+      .venv/bin/python scripts/get_token.py   # abre la URL que imprime y autoriza
+      gh secret set -f .yt.env
       ```
 4. Sube el proyecto a un repo de GitHub y añade en *Settings → Secrets and variables → Actions*:
    `GEMINI_API_KEY`, `PEXELS_API_KEY`, `YT_CLIENT_ID`, `YT_CLIENT_SECRET`, `YT_REFRESH_TOKEN`.

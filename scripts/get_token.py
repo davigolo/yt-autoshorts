@@ -1,10 +1,23 @@
+import os
+from pathlib import Path
+
 from google_auth_oauthlib.flow import InstalledAppFlow
 
 SCOPES = ["https://www.googleapis.com/auth/youtube.upload"]
+OUTPUT = Path(__file__).parent.parent / ".yt.env"
 
 flow = InstalledAppFlow.from_client_secrets_file("client_secret.json", SCOPES)
-credentials = flow.run_local_server(port=0, access_type="offline", prompt="consent")
-print("\nGuarda estos valores como secrets en GitHub:\n")
-print(f"YT_CLIENT_ID={credentials.client_id}")
-print(f"YT_CLIENT_SECRET={credentials.client_secret}")
-print(f"YT_REFRESH_TOKEN={credentials.refresh_token}")
+credentials = flow.run_local_server(
+    port=8765,
+    open_browser=False,
+    access_type="offline",
+    prompt="consent",
+    authorization_prompt_message="Abre esta URL para autorizar el canal:\n{url}\n",
+)
+OUTPUT.write_text(
+    f"YT_CLIENT_ID={credentials.client_id}\n"
+    f"YT_CLIENT_SECRET={credentials.client_secret}\n"
+    f"YT_REFRESH_TOKEN={credentials.refresh_token}\n"
+)
+os.chmod(OUTPUT, 0o600)
+print(f"Credenciales guardadas en {OUTPUT}. Súbelas con: gh secret set -f .yt.env")
