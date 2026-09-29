@@ -24,6 +24,7 @@ HIGHLIGHT = r"{\c&H3FD2FF&\fscx112\fscy112}"
 RESET = r"{\r}"
 HOOK_SECONDS = 2.8
 TAIL_SECONDS = 0.2
+SAMPLE_RATE = 48000
 MUSIC_EXTENSIONS = {".mp3", ".m4a", ".wav", ".ogg"}
 
 
@@ -96,11 +97,12 @@ def render(clips: list[Path], audio: Path, subtitles: Path, config: dict, workdi
 
     parts = []
     for i, (clip, offset) in enumerate(plan):
+        frames = round((i + 1) * segment * fps) - round(i * segment * fps)
         start = offset % max(clip_lengths[clip] - segment, 0.01)
         progress = f"t/{segment:.3f}" if i % 2 == 0 else f"(1-t/{segment:.3f})"
         part = workdir / f"part_{i}.mp4"
         _run([
-            "ffmpeg", "-y", "-ss", f"{start:.3f}", "-stream_loop", "-1", "-i", str(clip), "-t", f"{segment:.3f}", "-an",
+            "ffmpeg", "-y", "-ss", f"{start:.3f}", "-stream_loop", "-1", "-i", str(clip), "-frames:v", str(frames), "-an",
             "-vf", (
                 f"setpts=PTS-STARTPTS,fps={fps},scale={w}:{h}:force_original_aspect_ratio=increase,crop={w}:{h},"
                 f"scale=w='trunc({w}*(1+{zoom}*{progress})/2)*2':h=-2:eval=frame,crop={w}:{h},setsar=1"
@@ -114,22 +116,33 @@ def render(clips: list[Path], audio: Path, subtitles: Path, config: dict, workdi
     joined = workdir / "joined.mp4"
     _run(["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", str(concat_list), "-c", "copy", str(joined)])
 
-    inputs = ["-i", str(joined.resolve()), "-i", str(audio.resolve())]
-    audio_filter = "[1:a]apad[mix]"
+    voice = workdir / "voice_norm.wav"
+    _run([
+        "ffmpeg", "-y", "-i", str(audio), "-af", "loudnorm=I=-14:TP=-1.5:LRA=11",
+        "-ar", str(SAMPLE_RATE), "-ac", "2", str(voice),
+    ])
+
+    mixed = workdir / "mix.wav"
     music = _pick_music(music_dir)
     if music:
         print(f"Música: {music.name}")
-        inputs += ["-stream_loop", "-1", "-i", str(music.resolve())]
-        audio_filter = (
-            f"[2:a]volume={config['music']['volume']},afade=t=in:d=1,"
-            f"afade=t=out:st={max(total - 1.5, 0):.3f}:d=1.5[m];"
-            "[1:a]apad[vo];[vo][m]amix=inputs=2:duration=shortest:normalize=0[mix]"
-        )
+        _run([
+            "ffmpeg", "-y", "-i", str(voice), "-i", str(music),
+            "-filter_complex", (
+                f"[1:a]aresample={SAMPLE_RATE},apad=whole_dur={total:.3f},atrim=0:{total:.3f},asetpts=PTS-STARTPTS,"
+                f"volume={config['music']['volume']},afade=t=in:d=1,afade=t=out:st={max(total - 1.5, 0):.3f}:d=1.5[m];"
+                f"[0:a]apad=whole_dur={total:.3f}[vo];"
+                "[vo][m]amix=inputs=2:duration=first:normalize=0,alimiter=limit=0.89[a]"
+            ),
+            "-map", "[a]", "-ar", str(SAMPLE_RATE), str(mixed),
+        ])
+    else:
+        _run(["ffmpeg", "-y", "-i", str(voice), "-af", f"apad=whole_dur={total:.3f}", str(mixed)])
 
     _run([
-        "ffmpeg", "-y", *inputs,
-        "-filter_complex", f"[0:v]ass={subtitles.name}[v];{audio_filter};[mix]loudnorm=I=-14:TP=-1.5:LRA=11[a]",
-        "-map", "[v]", "-map", "[a]", "-c:v", "libx264", "-preset", "medium", "-crf", "20",
+        "ffmpeg", "-y", "-i", str(joined.resolve()), "-i", str(mixed.resolve()),
+        "-filter_complex", f"[0:v]ass={subtitles.name},tpad=stop_mode=clone:stop_duration=1[v]",
+        "-map", "[v]", "-map", "1:a", "-c:v", "libx264", "-preset", "medium", "-crf", "20",
         "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "192k", "-t", f"{total:.3f}",
         "-movflags", "+faststart", str(out.resolve()),
     ], cwd=workdir)
