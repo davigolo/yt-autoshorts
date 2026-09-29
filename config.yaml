@@ -1,0 +1,23 @@
+channel:
+  niche: "curiosidades sorprendentes de ciencia, historia y naturaleza"
+  language: "español de España"
+  audience: "público general curioso"
+
+script:
+  model: "gemini-2.5-flash"
+  target_words: 110
+
+voice:
+  name: "es-ES-AlvaroNeural"
+  rate: "+8%"
+
+video:
+  width: 1080
+  height: 1920
+  fps: 30
+  clips: 6
+
+upload:
+  privacy: "public"
+  category_id: "27"
+  contains_synthetic_media: true
