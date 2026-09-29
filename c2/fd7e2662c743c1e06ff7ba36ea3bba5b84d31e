@@ -1,0 +1,23 @@
+config.yaml
+  s_d65a76bcd9d53f::t_557facbec3306c 7-10
+autoshorts/script.py
+  s_d65a76bcd9d53f::t_262810ad784962 3,7,41-64,73
+README.md
+  s_d65a76bcd9d53f::t_4cba41c8a13209 48
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "c2fd7e2662c743c1e06ff7ba36ea3bba5b84d31e",
+  "prompts": {},
+  "sessions": {
+    "s_d65a76bcd9d53f": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "f40c3fb2-a056-42a5-8be3-6486609bfaf3",
+        "model": "unknown"
+      },
+      "human_author": "david <davidglom@ext.inditex.com>"
+    }
+  }
+}
