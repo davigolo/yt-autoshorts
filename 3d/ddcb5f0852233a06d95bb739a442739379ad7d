@@ -1,0 +1,44 @@
+autoshorts/render.py
+  s_d65a76bcd9d53f::t_e3d6929fc4bf35 1-77
+  s_d65a76bcd9d53f::t_93692873bad7a8 78-79
+autoshorts/script.py
+  s_d65a76bcd9d53f::t_cbdd577d7673df 1-60
+requirements.txt
+  s_d65a76bcd9d53f::t_c2e5682655d395 1-6
+autoshorts/upload.py
+  s_d65a76bcd9d53f::t_db400abe911bfb 1-45
+.github/workflows/daily.yml
+  s_d65a76bcd9d53f::t_f2568f7e74267f 1-54
+main.py
+  s_d65a76bcd9d53f::t_6e9fd939db7842 1-55
+README.md
+  s_d65a76bcd9d53f::t_42bc2dc1ead72b 1-52
+.gitignore
+  s_d65a76bcd9d53f::t_89e886b76a0eb5 1-5
+config.yaml
+  s_d65a76bcd9d53f::t_e296b66bb1f56f 1-23
+scripts/get_token.py
+  s_d65a76bcd9d53f::t_5a99c4be876b5e 1-10
+autoshorts/footage.py
+  s_d65a76bcd9d53f::t_04e06884ee921b 1-53
+autoshorts/voice.py
+  s_d65a76bcd9d53f::t_6a2eae160289ff 1-31
+history.json
+  s_d65a76bcd9d53f::t_90647e870f632c 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "3dddcb5f0852233a06d95bb739a442739379ad7d",
+  "prompts": {},
+  "sessions": {
+    "s_d65a76bcd9d53f": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "f40c3fb2-a056-42a5-8be3-6486609bfaf3",
+        "model": "unknown"
+      },
+      "human_author": "david <davidglom@ext.inditex.com>"
+    }
+  }
+}
