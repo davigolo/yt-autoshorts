@@ -1,0 +1,29 @@
+autoshorts/insights.py
+  s_d65a76bcd9d53f::t_81d10b95a441c1 1-76
+.github/workflows/daily.yml
+  s_d65a76bcd9d53f::t_6b36d00f7ae39e 5,7,48-49
+autoshorts/script.py
+  s_d65a76bcd9d53f::t_ca2511168d3f37 33-34,83-85,88,90,94
+autoshorts/upload.py
+  s_d65a76bcd9d53f::t_4438ed3367f72d 8-11
+main.py
+  s_d65a76bcd9d53f::t_59d99260486e55 10,32-40
+scripts/get_token.py
+  s_d65a76bcd9d53f::t_e2a541a8e9dc6f 6-9
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "8900e79f69ff937dd06f1494c55f0f9cee3316e0",
+  "prompts": {},
+  "sessions": {
+    "s_d65a76bcd9d53f": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "f40c3fb2-a056-42a5-8be3-6486609bfaf3",
+        "model": "unknown"
+      },
+      "human_author": "david <davidglom@ext.inditex.com>"
+    }
+  }
+}
