@@ -45,7 +45,7 @@ Todo en `config.yaml`: nicho, idioma, voz (`edge-tts --list-voices`), longitud, 
 
 | Servicio | Coste |
 |---|---|
-| Gemini 2.5 Flash (capa gratuita) | 0 € |
+| Gemini Flash (capa gratuita, con modelos de respaldo en `config.yaml`) | 0 € |
 | edge-tts | 0 € |
 | Pexels | 0 € |
 | YouTube Data API (1.600 de 10.000 unidades/día) | 0 € |

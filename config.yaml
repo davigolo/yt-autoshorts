@@ -4,7 +4,10 @@ channel:
   audience: "público general curioso"
 
 script:
-  model: "gemini-2.5-flash"
+  models:
+    - "gemini-3.8-flash"
+    - "gemini-3.5-flash"
+    - "gemini-flash-latest"
   target_words: 110
 
 voice:
