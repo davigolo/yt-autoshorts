@@ -1,0 +1,19 @@
+history.json
+  s_17d311c5edbad0::t_e06cd5ab4b19ef 7-13
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "4e0c6cc52c5130b24f9b153b0ba3308a8898042a",
+  "prompts": {},
+  "sessions": {
+    "s_17d311c5edbad0": {
+      "agent_id": {
+        "tool": "github-copilot",
+        "id": "s_17d311c5edbad0",
+        "model": "unknown"
+      },
+      "human_author": "david <davidglom@ext.inditex.com>"
+    }
+  }
+}
