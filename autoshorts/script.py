@@ -30,6 +30,8 @@ Reglas:
 - La última frase debe enlazar de forma natural con la primera, para que al repetirse el vídeo parezca continuo.
 - NO repitas ninguno de estos temas ya publicados: {history}
 
+{insights}
+
 Devuelve SOLO JSON con esta forma:
 {{
   "topic": "tema en 3-6 palabras",
@@ -78,17 +80,18 @@ def _generate(client: genai.Client, models: list[str], prompt: str, rounds: int 
     raise RuntimeError("Ningún modelo de Gemini disponible") from last_error
 
 
-def _pick_format(recent_formats: list[str]) -> str:
-    options = [f for f in FORMATS if f not in recent_formats[-2:]]
-    return random.choice(options or list(FORMATS))
+def _pick_format(recent_formats: list[str], weights: dict[str, float]) -> str:
+    options = [f for f in FORMATS if f not in recent_formats[-2:]] or list(FORMATS)
+    return random.choices(options, weights=[weights.get(f, 1.0) for f in options])[0]
 
 
-def generate_script(config: dict, history: list[dict]) -> Script:
+def generate_script(config: dict, history: list[dict], insights: str = "", weights: dict[str, float] | None = None) -> Script:
     client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
-    video_format = _pick_format([h.get("format", "") for h in history])
+    video_format = _pick_format([h.get("format", "") for h in history], weights or {})
     prompt = PROMPT.format(
         **config["channel"],
         format_rule=FORMATS[video_format],
+        insights=insights,
         target_words=config["script"]["target_words"],
         clips=config["video"]["clips"],
         history="; ".join(h["topic"] for h in history[-200:]) or "ninguno",

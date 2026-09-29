@@ -7,6 +7,7 @@ from pathlib import Path
 import yaml
 
 from autoshorts.footage import download_clips
+from autoshorts.insights import build_insights, fetch_performance, format_weights
 from autoshorts.render import render, write_subtitles
 from autoshorts.script import generate_script
 from autoshorts.upload import upload
@@ -28,7 +29,15 @@ def main() -> None:
     shutil.rmtree(workdir, ignore_errors=True)
     workdir.mkdir()
 
-    script = generate_script(config, history)
+    insights, weights = "", {}
+    try:
+        performance = fetch_performance(history)
+        insights, weights = build_insights(performance), format_weights(performance)
+        print(f"Estadísticas: {len(performance)} vídeos con datos, pesos por formato {weights}")
+    except Exception as e:
+        print(f"Sin estadísticas ({type(e).__name__}: {e}); se genera sin ellas")
+
+    script = generate_script(config, history, insights, weights)
     print(f"Formato: {script.format}\nTema: {script.topic}\nGancho: {script.hook_text}\nTítulo: {script.title}")
 
     audio = workdir / "voice.mp3"
