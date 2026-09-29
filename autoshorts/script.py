@@ -1,27 +1,41 @@
 import json
 import os
+import random
 import time
 from dataclasses import dataclass
 
 from google import genai
 from google.genai import errors
 
+FORMATS = {
+    "dato": "Un único dato sorprendente explicado de forma rápida y visual.",
+    "mito": "Formato 'mito o verdad': plantea una creencia popular y revela si es cierta.",
+    "top3": "Formato 'top 3': tres datos muy breves y encadenados sobre un mismo tema, del menos al más sorprendente.",
+    "que_pasaria": "Formato '¿qué pasaría si...?': un escenario hipotético explicado con ciencia real.",
+    "reto": "Formato reto: plantea una pregunta al espectador, deja un instante para pensar y revela la respuesta.",
+}
+
 PROMPT = """Eres guionista de un canal de YouTube Shorts sobre {niche}.
 Idioma: {language}. Audiencia: {audience}.
+Formato de hoy: {format_rule}
 
-Escribe el guion de UN short nuevo de unos {target_words} palabras (~40-50 segundos narrado).
+Escribe el guion de UN short nuevo de {target_words} palabras como máximo (25-35 segundos narrado).
+Objetivo: que el espectador lo vea entero y lo repita.
 Reglas:
-- Empieza con un gancho potente en la primera frase.
-- Datos verídicos y comprobables; nada inventado.
+- La primera frase es el gancho: impactante, concreta, sin saludos ni introducciones.
+- Frases cortas, ritmo rápido, lenguaje sencillo.
+- Datos verídicos y comprobables; nada inventado ni exagerado.
 - Texto solo para narrar: sin emojis, sin acotaciones, sin hashtags.
-- Termina invitando a seguir el canal en una frase corta.
+- NO pidas suscripciones ni likes.
+- La última frase debe enlazar de forma natural con la primera, para que al repetirse el vídeo parezca continuo.
 - NO repitas ninguno de estos temas ya publicados: {history}
 
 Devuelve SOLO JSON con esta forma:
 {{
   "topic": "tema en 3-6 palabras",
-  "title": "título atractivo de máximo 70 caracteres",
-  "description": "descripción de 2-3 frases",
+  "hook_text": "texto para mostrar en pantalla el primer segundo, máximo 5 palabras, que genere curiosidad",
+  "title": "título con curiosidad y sin clickbait falso, máximo 60 caracteres",
+  "description": "descripción de 1-2 frases",
   "tags": ["5 a 10 etiquetas"],
   "narration": "texto completo a narrar",
   "search_terms": ["{clips} términos EN INGLÉS, concretos y visuales, para buscar vídeos de stock, en orden de aparición"]
@@ -31,6 +45,8 @@ Devuelve SOLO JSON con esta forma:
 @dataclass
 class Script:
     topic: str
+    format: str
+    hook_text: str
     title: str
     description: str
     tags: list[str]
@@ -62,17 +78,26 @@ def _generate(client: genai.Client, models: list[str], prompt: str, rounds: int 
     raise RuntimeError("Ningún modelo de Gemini disponible") from last_error
 
 
-def generate_script(config: dict, history: list[str]) -> Script:
+def _pick_format(recent_formats: list[str]) -> str:
+    options = [f for f in FORMATS if f not in recent_formats[-2:]]
+    return random.choice(options or list(FORMATS))
+
+
+def generate_script(config: dict, history: list[dict]) -> Script:
     client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
+    video_format = _pick_format([h.get("format", "") for h in history])
     prompt = PROMPT.format(
         **config["channel"],
+        format_rule=FORMATS[video_format],
         target_words=config["script"]["target_words"],
         clips=config["video"]["clips"],
-        history="; ".join(history[-200:]) or "ninguno",
+        history="; ".join(h["topic"] for h in history[-200:]) or "ninguno",
     )
     data = json.loads(_generate(client, config["script"]["models"], prompt))
     return Script(
         topic=data["topic"],
+        format=video_format,
+        hook_text=data["hook_text"],
         title=data["title"][:95],
         description=data["description"],
         tags=data["tags"][:15],

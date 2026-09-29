@@ -28,20 +28,20 @@ def main() -> None:
     shutil.rmtree(workdir, ignore_errors=True)
     workdir.mkdir()
 
-    script = generate_script(config, [h["topic"] for h in history])
-    print(f"Tema: {script.topic}\nTítulo: {script.title}")
+    script = generate_script(config, history)
+    print(f"Formato: {script.format}\nTema: {script.topic}\nGancho: {script.hook_text}\nTítulo: {script.title}")
 
     audio = workdir / "voice.mp3"
     words = synthesize(script.narration, config, audio)
     subtitles = workdir / "subs.ass"
-    write_subtitles(words, config, subtitles)
+    write_subtitles(words, script.hook_text, config, subtitles)
 
     clips = download_clips(script.search_terms, config, workdir)
     output = workdir / "short.mp4"
-    render(clips, audio, subtitles, config, workdir, output)
+    render(clips, audio, subtitles, config, workdir, output, ROOT / "music")
     print(f"Vídeo generado: {output}")
 
-    entry = {"date": date.today().isoformat(), "topic": script.topic, "title": script.title}
+    entry = {"date": date.today().isoformat(), "format": script.format, "topic": script.topic, "title": script.title}
     if not args.no_upload:
         video_id = upload(output, script.title, script.description, script.tags, config)
         entry["video_id"] = video_id

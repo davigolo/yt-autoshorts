@@ -8,7 +8,7 @@ script:
     - "gemini-3.8-flash"
     - "gemini-3.5-flash"
     - "gemini-flash-latest"
-  target_words: 110
+  target_words: 80
 
 voice:
   name: "es-ES-AlvaroNeural"
@@ -18,9 +18,16 @@ video:
   width: 1080
   height: 1920
   fps: 30
-  clips: 6
+  clips: 7
+  clips_per_term: 2
+  segment_seconds: 2.5
+  zoom: 0.12
+
+music:
+  volume: 0.12
 
 upload:
   privacy: "public"
   category_id: "27"
   contains_synthetic_media: true
+  hashtags: "#shorts #curiosidades #sabiasque"

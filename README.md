@@ -51,3 +51,9 @@ Todo en `config.yaml`: nicho, idioma, voz (`edge-tts --list-voices`), longitud, 
 | Pexels | 0 € |
 | YouTube Data API (1.600 de 10.000 unidades/día) | 0 € |
 | GitHub Actions (~3-5 min/día) | 0 € en repo público; en privado entra en los 2.000 min/mes gratis |
+
+## Música de fondo
+
+Pon pistas sin copyright (`.mp3`, `.m4a`, `.wav`, `.ogg`) en `music/` y haz commit. Cada vídeo elige una al azar
+y la mezcla a volumen bajo (`music.volume` en `config.yaml`). Si la carpeta está vacía, el vídeo sale solo con voz.
+Fuente recomendada: Biblioteca de audio de YouTube Studio, filtrando por "No se requiere atribución".

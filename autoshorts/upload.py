@@ -24,7 +24,7 @@ def upload(video: Path, title: str, description: str, tags: list[str], config: d
     body = {
         "snippet": {
             "title": title,
-            "description": f"{description}\n\n#shorts",
+            "description": f"{description}\n\n{config['upload']['hashtags']}",
             "tags": tags,
             "categoryId": config["upload"]["category_id"],
         },
