@@ -1,7 +1,7 @@
 channel:
   niche: "curiosidades sorprendentes de ciencia, historia y naturaleza"
-  language: "español de España"
-  audience: "público general curioso"
+  language: "español neutro"
+  audience: "público general curioso de España y Latinoamérica"
 
 script:
   models:
@@ -20,6 +20,7 @@ video:
   fps: 30
   clips: 7
   clips_per_term: 2
+  images: 3
   segment_seconds: 2.5
   zoom: 0.12
 

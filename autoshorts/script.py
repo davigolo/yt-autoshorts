@@ -22,8 +22,9 @@ Formato de hoy: {format_rule}
 Escribe el guion de UN short nuevo de {target_words} palabras como máximo (25-35 segundos narrado).
 Objetivo: que el espectador lo vea entero y lo repita.
 Reglas:
-- La primera frase es el gancho: impactante, concreta, sin saludos ni introducciones.
-- Frases cortas, ritmo rápido, lenguaje sencillo.
+- La primera frase es el gancho: impactante, concreta, sin saludos ni introducciones. Debe abrir una pregunta en la mente del espectador.
+- NUNCA reveles la respuesta, el desenlace o el dato clave en el gancho ni en la primera mitad: da contexto y pistas, sube la tensión y revela la respuesta en el último tercio.
+- Frases cortas, ritmo rápido, lenguaje sencillo. Español neutro, entendible igual en España y Latinoamérica (nada de "vosotros" ni modismos locales).
 - Datos verídicos y comprobables; nada inventado ni exagerado.
 - Texto solo para narrar: sin emojis, sin acotaciones, sin hashtags.
 - NO pidas suscripciones ni likes.
@@ -35,12 +36,13 @@ Reglas:
 Devuelve SOLO JSON con esta forma:
 {{
   "topic": "tema en 3-6 palabras",
-  "hook_text": "texto para mostrar en pantalla el primer segundo, máximo 5 palabras, que genere curiosidad",
+  "hook_text": "texto para mostrar en pantalla el primer segundo, máximo 5 palabras, que genere curiosidad SIN dar la respuesta",
   "title": "título con curiosidad y sin clickbait falso, máximo 60 caracteres",
   "description": "descripción de 1-2 frases",
   "tags": ["5 a 10 etiquetas"],
   "narration": "texto completo a narrar",
-  "search_terms": ["{clips} términos EN INGLÉS, concretos y visuales, para buscar vídeos de stock, en orden de aparición"]
+  "search_terms": ["{clips} términos EN INGLÉS, de 1-3 palabras, literales y fáciles de encontrar en vídeos de stock, en orden de aparición. Nada abstracto ni genérico"],
+  "wiki_images": ["{images} títulos EXACTOS de artículos de la Wikipedia en inglés cuya imagen principal muestre lo que se narra, en orden de aparición. Solo sujetos concretos que se puedan fotografiar (animales, personas, lugares, objetos, fósiles, fenómenos naturales), nunca conceptos abstractos ni procesos. El primero ilustra el gancho y debe ser lo más llamativo y reconocible del tema (por ejemplo 'Tyrannosaurus', 'Cleopatra', 'Gjermundbu helmet', 'Lightning')"]
 }}"""
 
 
@@ -54,12 +56,20 @@ class Script:
     tags: list[str]
     narration: str
     search_terms: list[str]
+    wiki_images: list[str]
 
 
 RETRYABLE_CODES = {404, 429, 500, 503}
 
 
-def _generate(client: genai.Client, models: list[str], prompt: str, rounds: int = 3) -> str:
+def _parse(text: str) -> dict:
+    data, _ = json.JSONDecoder().raw_decode(text.strip())
+    if isinstance(data, list):
+        data = data[0]
+    return data
+
+
+def _generate(client: genai.Client, models: list[str], prompt: str, rounds: int = 5) -> dict:
     last_error: Exception | None = None
     for attempt in range(rounds):
         for model in models:
@@ -69,12 +79,16 @@ def _generate(client: genai.Client, models: list[str], prompt: str, rounds: int 
                     contents=prompt,
                     config={"response_mime_type": "application/json", "temperature": 1.0},
                 )
+                data = _parse(response.text)
                 print(f"Guion generado con {model}")
-                return response.text
+                return data
             except errors.APIError as e:
                 if e.code not in RETRYABLE_CODES:
                     raise
                 print(f"{model} no disponible ({e.code}), probando otro")
+                last_error = e
+            except (json.JSONDecodeError, IndexError, TypeError) as e:
+                print(f"{model} devolvió JSON inválido ({e}), probando otro")
                 last_error = e
         time.sleep(30 * (attempt + 1))
     raise RuntimeError("Ningún modelo de Gemini disponible") from last_error
@@ -94,9 +108,10 @@ def generate_script(config: dict, history: list[dict], insights: str = "", weigh
         insights=insights,
         target_words=config["script"]["target_words"],
         clips=config["video"]["clips"],
+        images=config["video"]["images"],
         history="; ".join(h["topic"] for h in history[-200:]) or "ninguno",
     )
-    data = json.loads(_generate(client, config["script"]["models"], prompt))
+    data = _generate(client, config["script"]["models"], prompt)
     return Script(
         topic=data["topic"],
         format=video_format,
@@ -106,4 +121,5 @@ def generate_script(config: dict, history: list[dict], insights: str = "", weigh
         tags=data["tags"][:15],
         narration=data["narration"],
         search_terms=data["search_terms"],
+        wiki_images=data.get("wiki_images", [])[:config["video"]["images"]],
     )

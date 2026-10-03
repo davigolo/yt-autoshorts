@@ -6,7 +6,7 @@ from pathlib import Path
 
 import yaml
 
-from autoshorts.footage import download_clips
+from autoshorts.footage import download_clips, download_images
 from autoshorts.insights import build_insights, fetch_performance, format_weights
 from autoshorts.render import render, write_subtitles
 from autoshorts.script import generate_script
@@ -47,7 +47,9 @@ def main() -> None:
 
     clips = download_clips(script.search_terms, config, workdir)
     output = workdir / "short.mp4"
-    render(clips, audio, subtitles, config, workdir, output, ROOT / "music")
+    images = download_images(script.wiki_images, workdir)
+    print(f"Imágenes de Wikipedia: {sum(1 for i in images if i)}/{len(script.wiki_images)} {script.wiki_images}")
+    render(clips, images, audio, subtitles, config, workdir, output, ROOT / "music")
     print(f"Vídeo generado: {output}")
 
     entry = {"date": date.today().isoformat(), "format": script.format, "topic": script.topic, "title": script.title}

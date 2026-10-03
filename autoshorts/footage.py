@@ -54,3 +54,50 @@ def download_clips(terms: list[str], config: dict, workdir: Path) -> list[Path]:
     if not clips:
         raise RuntimeError("No se ha podido descargar ningún clip de Pexels")
     return clips
+
+
+WIKI_API = "https://en.wikipedia.org/w/api.php"
+WIKI_HEADERS = {"User-Agent": "yt-autoshorts/1.0 (https://github.com/davigolo/yt-autoshorts)"}
+IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
+MIN_IMAGE_SIDE = 600
+
+
+def _wiki_image(query: str) -> str | None:
+    response = requests.get(
+        WIKI_API,
+        headers=WIKI_HEADERS,
+        params={
+            "action": "query", "format": "json", "generator": "search", "gsrsearch": query, "gsrlimit": 1,
+            "prop": "pageimages", "piprop": "thumbnail|original", "pithumbsize": 1600,
+        },
+        timeout=30,
+    )
+    response.raise_for_status()
+    for page in response.json().get("query", {}).get("pages", {}).values():
+        original, thumb = page.get("original"), page.get("thumbnail")
+        if not original or not thumb:
+            continue
+        if Path(original["source"].split("?")[0]).suffix.lower() not in IMAGE_EXTENSIONS:
+            continue
+        if min(thumb["width"], thumb["height"]) >= MIN_IMAGE_SIDE:
+            return thumb["source"]
+    return None
+
+
+def download_images(queries: list[str], workdir: Path) -> list[Path | None]:
+    images: list[Path | None] = []
+    for i, query in enumerate(queries):
+        try:
+            link = _wiki_image(query)
+            if not link:
+                images.append(None)
+                continue
+            path = workdir / f"image_{i}{Path(link.split('?')[0]).suffix.lower()}"
+            response = requests.get(link, headers=WIKI_HEADERS, timeout=60)
+            response.raise_for_status()
+            path.write_bytes(response.content)
+            images.append(path)
+        except requests.RequestException as e:
+            print(f"Sin imagen para '{query}' ({e})")
+            images.append(None)
+    return images

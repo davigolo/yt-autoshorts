@@ -26,6 +26,7 @@ HOOK_SECONDS = 2.8
 TAIL_SECONDS = 0.2
 SAMPLE_RATE = 48000
 MUSIC_EXTENSIONS = {".mp3", ".m4a", ".wav", ".ogg"}
+IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
 
 
 def _run(args: list[str], cwd: Path | None = None) -> None:
@@ -82,31 +83,58 @@ def _plan_segments(clips: list[Path], total: float, target: float) -> list[tuple
     return plan
 
 
+def _place_images(plan: list[tuple[Path, float]], images: list[Path | None]) -> list[tuple[Path, float]]:
+    plan = list(plan)
+    for k, image in enumerate(images):
+        if image:
+            plan[min(round(k * len(plan) / len(images)), len(plan) - 1)] = (image, 0.0)
+    return plan
+
+
+def _segment_filter(source: Path, w: int, h: int, fps: int, zoom: float, progress: str) -> str:
+    kenburns = f"scale=w='trunc({w}*(1+{zoom}*{progress})/2)*2':h=-2:eval=frame,crop={w}:{h},setsar=1"
+    if source.suffix.lower() in IMAGE_EXTENSIONS:
+        return (
+            f"[0:v]fps={fps},split[a][b];"
+            f"[a]scale={w}:{h}:force_original_aspect_ratio=increase,crop={w}:{h},boxblur=40:2,eq=brightness=-0.2[bg];"
+            f"[b]scale={w}:{h}:force_original_aspect_ratio=decrease[fg];"
+            f"[bg][fg]overlay=(W-w)/2:(H-h)/2,{kenburns}[v]"
+        )
+    return (
+        f"[0:v]setpts=PTS-STARTPTS,fps={fps},scale={w}:{h}:force_original_aspect_ratio=increase,crop={w}:{h},"
+        f"{kenburns}[v]"
+    )
+
+
 def _pick_music(music_dir: Path) -> Path | None:
     tracks = [p for p in music_dir.glob("*") if p.suffix.lower() in MUSIC_EXTENSIONS] if music_dir.exists() else []
     return random.choice(tracks) if tracks else None
 
 
-def render(clips: list[Path], audio: Path, subtitles: Path, config: dict, workdir: Path, out: Path, music_dir: Path) -> None:
+def render(
+    clips: list[Path], images: list[Path | None], audio: Path, subtitles: Path,
+    config: dict, workdir: Path, out: Path, music_dir: Path,
+) -> None:
     video = config["video"]
     w, h, fps, zoom = video["width"], video["height"], video["fps"], video["zoom"]
     total = duration(audio) + TAIL_SECONDS
-    plan = _plan_segments(clips, total, video["segment_seconds"])
+    plan = _place_images(_plan_segments(clips, total, video["segment_seconds"]), images)
     segment = total / len(plan)
-    clip_lengths = {clip: duration(clip) for clip in set(clips)}
+    clip_lengths = {clip: duration(clip) for clip, _ in plan if clip.suffix.lower() not in IMAGE_EXTENSIONS}
 
     parts = []
     for i, (clip, offset) in enumerate(plan):
         frames = round((i + 1) * segment * fps) - round(i * segment * fps)
-        start = offset % max(clip_lengths[clip] - segment, 0.01)
         progress = f"t/{segment:.3f}" if i % 2 == 0 else f"(1-t/{segment:.3f})"
+        if clip in clip_lengths:
+            start = offset % max(clip_lengths[clip] - segment, 0.01)
+            source = ["-ss", f"{start:.3f}", "-stream_loop", "-1", "-i", str(clip)]
+        else:
+            source = ["-loop", "1", "-i", str(clip)]
         part = workdir / f"part_{i}.mp4"
         _run([
-            "ffmpeg", "-y", "-ss", f"{start:.3f}", "-stream_loop", "-1", "-i", str(clip), "-frames:v", str(frames), "-an",
-            "-vf", (
-                f"setpts=PTS-STARTPTS,fps={fps},scale={w}:{h}:force_original_aspect_ratio=increase,crop={w}:{h},"
-                f"scale=w='trunc({w}*(1+{zoom}*{progress})/2)*2':h=-2:eval=frame,crop={w}:{h},setsar=1"
-            ),
+            "ffmpeg", "-y", *source, "-frames:v", str(frames), "-an",
+            "-filter_complex", _segment_filter(clip, w, h, fps, zoom, progress), "-map", "[v]",
             "-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p", str(part),
         ])
         parts.append(part)
