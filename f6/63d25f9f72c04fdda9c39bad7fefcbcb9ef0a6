@@ -1,0 +1,27 @@
+autoshorts/footage.py
+  s_e27b3dfbf2dd88::t_cb74411b67cd5d 57-103
+autoshorts/render.py
+  s_e27b3dfbf2dd88::t_85ec9fcaf4c66f 29,86-108,114-117,121,123,129-133,136-137
+autoshorts/script.py
+  s_e27b3dfbf2dd88::t_115d8c1e546a52 25-27,39,44-45,59,65-72,82,84,90-92,111,114,124
+config.yaml
+  s_e27b3dfbf2dd88::t_21e6c3dd826655 3-4,23
+main.py
+  s_e27b3dfbf2dd88::t_81622e8bd307d0 9,50-52
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "f663d25f9f72c04fdda9c39bad7fefcbcb9ef0a6",
+  "prompts": {},
+  "sessions": {
+    "s_e27b3dfbf2dd88": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "a49147ad-be38-4bd8-afb5-080f5d0bf6a2",
+        "model": "unknown"
+      },
+      "human_author": "david <davidglom@ext.inditex.com>"
+    }
+  }
+}
