@@ -30,6 +30,8 @@ Reglas:
 - NO pidas suscripciones ni likes.
 - La última frase debe enlazar de forma natural con la primera, para que al repetirse el vídeo parezca continuo.
 - NO repitas ninguno de estos temas ya publicados: {history}
+- Divide la narración en {scenes} escenas en orden; al unir el "text" de todas las escenas debe salir la narración completa, palabra por palabra.
+- Cada escena debe mostrar exactamente lo que se dice en ella. Para personajes históricos, objetos, lugares, animales o fósiles concretos rellena "wiki" con su artículo (p. ej. 'Cleopatra', 'Gjermundbu helmet', 'Tyrannosaurus'). La primera escena es el gancho y debe enseñar el sujeto del vídeo de forma reconocible.
 
 {insights}
 
@@ -40,10 +42,23 @@ Devuelve SOLO JSON con esta forma:
   "title": "título con curiosidad y sin clickbait falso, máximo 60 caracteres",
   "description": "descripción de 1-2 frases",
   "tags": ["5 a 10 etiquetas"],
-  "narration": "texto completo a narrar",
-  "search_terms": ["{clips} términos EN INGLÉS, de 1-3 palabras, literales y fáciles de encontrar en vídeos de stock, en orden de aparición. Nada abstracto ni genérico"],
-  "wiki_images": ["{images} títulos EXACTOS de artículos de la Wikipedia en inglés cuya imagen principal muestre lo que se narra, en orden de aparición. Solo sujetos concretos que se puedan fotografiar (animales, personas, lugares, objetos, fósiles, fenómenos naturales), nunca conceptos abstractos ni procesos. El primero ilustra el gancho y debe ser lo más llamativo y reconocible del tema (por ejemplo 'Tyrannosaurus', 'Cleopatra', 'Gjermundbu helmet', 'Lightning')"]
+  "scenes": [
+    {{
+      "text": "fragmento EXACTO de la narración que se oye en esta escena (una frase o media)",
+      "subject": "en inglés, qué tiene que verse literalmente en pantalla mientras se dice ese fragmento (p. ej. 'Viking iron helmet in a museum')",
+      "wiki": "título EXACTO de un artículo de la Wikipedia en inglés cuya foto principal muestre ese sujeto, o null si no existe",
+      "stock": "1-3 palabras en inglés para buscar un vídeo de stock que muestre ese sujeto"
+    }}
+  ]
 }}"""
+
+
+@dataclass
+class Scene:
+    text: str
+    subject: str
+    wiki: str | None
+    stock: str
 
 
 @dataclass
@@ -54,40 +69,36 @@ class Script:
     title: str
     description: str
     tags: list[str]
-    narration: str
-    search_terms: list[str]
-    wiki_images: list[str]
+    scenes: list[Scene]
+
+    @property
+    def narration(self) -> str:
+        return " ".join(scene.text.strip() for scene in self.scenes)
 
 
 RETRYABLE_CODES = {404, 429, 500, 503}
 
 
-def _parse(text: str) -> dict:
-    data, _ = json.JSONDecoder().raw_decode(text.strip())
-    if isinstance(data, list):
-        data = data[0]
-    return data
-
-
-def _generate(client: genai.Client, models: list[str], prompt: str, rounds: int = 5) -> dict:
+def generate_json(contents, models: list[str], rounds: int = 5) -> dict | list:
+    client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
     last_error: Exception | None = None
     for attempt in range(rounds):
         for model in models:
             try:
                 response = client.models.generate_content(
                     model=model,
-                    contents=prompt,
+                    contents=contents,
                     config={"response_mime_type": "application/json", "temperature": 1.0},
                 )
-                data = _parse(response.text)
-                print(f"Guion generado con {model}")
+                data, _ = json.JSONDecoder().raw_decode(response.text.strip())
+                print(f"Respuesta generada con {model}")
                 return data
             except errors.APIError as e:
                 if e.code not in RETRYABLE_CODES:
                     raise
                 print(f"{model} no disponible ({e.code}), probando otro")
                 last_error = e
-            except (json.JSONDecodeError, IndexError, TypeError) as e:
+            except (json.JSONDecodeError, TypeError) as e:
                 print(f"{model} devolvió JSON inválido ({e}), probando otro")
                 last_error = e
         time.sleep(30 * (attempt + 1))
@@ -100,18 +111,18 @@ def _pick_format(recent_formats: list[str], weights: dict[str, float]) -> str:
 
 
 def generate_script(config: dict, history: list[dict], insights: str = "", weights: dict[str, float] | None = None) -> Script:
-    client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
     video_format = _pick_format([h.get("format", "") for h in history], weights or {})
     prompt = PROMPT.format(
         **config["channel"],
         format_rule=FORMATS[video_format],
         insights=insights,
         target_words=config["script"]["target_words"],
-        clips=config["video"]["clips"],
-        images=config["video"]["images"],
+        scenes=config["video"]["scenes"],
         history="; ".join(h["topic"] for h in history[-200:]) or "ninguno",
     )
-    data = _generate(client, config["script"]["models"], prompt)
+    data = generate_json(prompt, config["script"]["models"])
+    if isinstance(data, list):
+        data = data[0]
     return Script(
         topic=data["topic"],
         format=video_format,
@@ -119,7 +130,8 @@ def generate_script(config: dict, history: list[dict], insights: str = "", weigh
         title=data["title"][:95],
         description=data["description"],
         tags=data["tags"][:15],
-        narration=data["narration"],
-        search_terms=data["search_terms"],
-        wiki_images=data.get("wiki_images", [])[:config["video"]["images"]],
+        scenes=[
+            Scene(text=s["text"], subject=s["subject"], wiki=s.get("wiki") or None, stock=s["stock"])
+            for s in data["scenes"] if s.get("text", "").strip()
+        ],
     )

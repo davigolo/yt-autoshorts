@@ -18,9 +18,7 @@ video:
   width: 1080
   height: 1920
   fps: 30
-  clips: 7
-  clips_per_term: 2
-  images: 3
+  scenes: 7
   segment_seconds: 2.5
   zoom: 0.12
 

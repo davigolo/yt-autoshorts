@@ -2,8 +2,9 @@
 
 Publica un YouTube Short diario generado íntegramente con IA, con coste ~0 €.
 
-Pipeline: **Gemini** (guion) → **edge-tts** (voz + tiempos por palabra) → **Pexels** (clips verticales)
-→ **ffmpeg** (montaje 1080x1920 + subtítulos) → **YouTube Data API** (subida) → **GitHub Actions** (cron diario).
+Pipeline: **Gemini** (guion dividido en escenas) → **edge-tts** (voz + tiempos por palabra)
+→ **Wikipedia / Wikimedia Commons / Pexels** (candidatos por escena; Gemini elige el que muestra lo narrado)
+→ **ffmpeg** (montaje 1080x1920, cada visual sincronizado con su frase, + subtítulos) → **YouTube Data API** (subida) → **GitHub Actions** (cron diario).
 
 ## Puesta en marcha (una sola vez)
 
@@ -51,7 +52,7 @@ export GEMINI_API_KEY=... PEXELS_API_KEY=...
 
 ## Personalizar
 
-Todo en `config.yaml`: nicho, idioma, voz (`edge-tts --list-voices`), longitud, nº de clips y privacidad.
+Todo en `config.yaml`: nicho, idioma, voz (`edge-tts --list-voices`), longitud, nº de escenas y privacidad.
 `history.json` guarda los temas publicados para no repetirlos (el workflow lo commitea tras cada subida).
 
 ## Coste

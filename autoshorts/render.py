@@ -1,6 +1,6 @@
 import json
-import math
 import random
+import re
 import subprocess
 from pathlib import Path
 
@@ -71,23 +71,27 @@ def write_subtitles(words: list[Word], hook_text: str, config: dict, out: Path, 
     out.write_text("".join(lines), encoding="utf-8")
 
 
-def _plan_segments(clips: list[Path], total: float, target: float) -> list[tuple[Path, float]]:
-    count = max(1, math.ceil(total / target))
-    uses: dict[Path, int] = {}
+def _scene_starts(words: list[Word], scene_texts: list[str]) -> list[float]:
+    counts = [len(re.findall(r"\w+", text)) for text in scene_texts]
+    total = sum(counts) or 1
+    starts, cumulative = [], 0
+    for count in counts:
+        index = min(round(cumulative / total * len(words)), len(words) - 1)
+        starts.append(words[index].start if cumulative and words else 0.0)
+        cumulative += count
+    return starts
+
+
+def _plan(visuals: list[Path], starts: list[float], total: float, target: float) -> list[tuple[Path, float, float, float]]:
     plan = []
-    for i in range(count):
-        clip = clips[int(i * len(clips) / count)] if len(clips) >= count else clips[i % len(clips)]
-        used = uses.get(clip, 0)
-        uses[clip] = used + 1
-        plan.append((clip, used * target))
-    return plan
-
-
-def _place_images(plan: list[tuple[Path, float]], images: list[Path | None]) -> list[tuple[Path, float]]:
-    plan = list(plan)
-    for k, image in enumerate(images):
-        if image:
-            plan[min(round(k * len(plan) / len(images)), len(plan) - 1)] = (image, 0.0)
+    bounds = starts[1:] + [total]
+    for visual, start, end in zip(visuals, starts, bounds):
+        if end - start <= 0.05:
+            continue
+        pieces = max(1, round((end - start) / target))
+        step = (end - start) / pieces
+        for k in range(pieces):
+            plan.append((visual, start + k * step, start + (k + 1) * step, k * step))
     return plan
 
 
@@ -112,29 +116,31 @@ def _pick_music(music_dir: Path) -> Path | None:
 
 
 def render(
-    clips: list[Path], images: list[Path | None], audio: Path, subtitles: Path,
+    visuals: list[Path], words: list[Word], scene_texts: list[str], audio: Path, subtitles: Path,
     config: dict, workdir: Path, out: Path, music_dir: Path,
 ) -> None:
     video = config["video"]
     w, h, fps, zoom = video["width"], video["height"], video["fps"], video["zoom"]
     total = duration(audio) + TAIL_SECONDS
-    plan = _place_images(_plan_segments(clips, total, video["segment_seconds"]), images)
-    segment = total / len(plan)
-    clip_lengths = {clip: duration(clip) for clip, _ in plan if clip.suffix.lower() not in IMAGE_EXTENSIONS}
+    plan = _plan(visuals, _scene_starts(words, scene_texts), total, video["segment_seconds"])
+    clip_lengths = {v: duration(v) for v in set(visuals) if v.suffix.lower() not in IMAGE_EXTENSIONS}
 
     parts = []
-    for i, (clip, offset) in enumerate(plan):
-        frames = round((i + 1) * segment * fps) - round(i * segment * fps)
-        progress = f"t/{segment:.3f}" if i % 2 == 0 else f"(1-t/{segment:.3f})"
-        if clip in clip_lengths:
-            start = offset % max(clip_lengths[clip] - segment, 0.01)
-            source = ["-ss", f"{start:.3f}", "-stream_loop", "-1", "-i", str(clip)]
+    for i, (visual, start, end, offset) in enumerate(plan):
+        frames = round(end * fps) - round(start * fps)
+        if frames <= 0:
+            continue
+        length = end - start
+        progress = f"t/{length:.3f}" if i % 2 == 0 else f"(1-t/{length:.3f})"
+        if visual in clip_lengths:
+            seek = offset % max(clip_lengths[visual] - length, 0.01)
+            source = ["-ss", f"{seek:.3f}", "-stream_loop", "-1", "-i", str(visual)]
         else:
-            source = ["-loop", "1", "-i", str(clip)]
+            source = ["-loop", "1", "-i", str(visual)]
         part = workdir / f"part_{i}.mp4"
         _run([
             "ffmpeg", "-y", *source, "-frames:v", str(frames), "-an",
-            "-filter_complex", _segment_filter(clip, w, h, fps, zoom, progress), "-map", "[v]",
+            "-filter_complex", _segment_filter(visual, w, h, fps, zoom, progress), "-map", "[v]",
             "-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p", str(part),
         ])
         parts.append(part)
