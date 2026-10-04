@@ -1,0 +1,29 @@
+README.md
+  s_e27b3dfbf2dd88::t_bfb6ed5033435b 5-7,55
+autoshorts/footage.py
+  s_e27b3dfbf2dd88::t_c2a817eae58f09 2-3,7-9,12-84,95-96,98-99,101-102,106,108-111,114,116-129,132-145,148-153,155-203
+autoshorts/render.py
+  s_e27b3dfbf2dd88::t_8c84ab6e7fcfc5 3,74-82,85-94,119,125-126,129-137,139,143
+autoshorts/script.py
+  s_e27b3dfbf2dd88::t_a75402c7bfe9bb 33-34,45-52,56-63,72,74-76,79,82-83,90,93-94,101,120,123-125,133-136
+config.yaml
+  s_e27b3dfbf2dd88::t_aae05c9cc94380 21
+main.py
+  s_e27b3dfbf2dd88::t_fa7dd55b6fb821 10,49,51
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "b4d938e775c87e30f4fdad1af33f9676fea61dea",
+  "prompts": {},
+  "sessions": {
+    "s_e27b3dfbf2dd88": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "a49147ad-be38-4bd8-afb5-080f5d0bf6a2",
+        "model": "unknown"
+      },
+      "human_author": "david <davidglom@ext.inditex.com>"
+    }
+  }
+}
