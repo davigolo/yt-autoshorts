@@ -6,6 +6,7 @@ from pathlib import Path
 
 import yaml
 
+from autoshorts import facebook
 from autoshorts.footage import download_clips, download_images
 from autoshorts.insights import build_insights, fetch_performance, format_weights
 from autoshorts.render import render, write_subtitles
@@ -57,6 +58,13 @@ def main() -> None:
         video_id = upload(output, script.title, script.description, script.tags, config)
         entry["video_id"] = video_id
         print(f"Subido: https://youtube.com/shorts/{video_id}")
+        if facebook.is_configured():
+            try:
+                fb_description = f"{script.title}\n\n{script.description}\n\n{config['facebook']['hashtags']}"
+                entry["fb_video_id"] = facebook.upload_reel(output, fb_description)
+                print(f"Subido a Facebook: {entry['fb_video_id']}")
+            except Exception as e:
+                print(f"No se pudo subir a Facebook ({type(e).__name__}: {e})")
 
     history.append(entry)
     HISTORY.write_text(json.dumps(history, ensure_ascii=False, indent=2), encoding="utf-8")

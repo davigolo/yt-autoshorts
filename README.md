@@ -28,6 +28,18 @@ Pipeline: **Gemini** (guion) → **edge-tts** (voz + tiempos por palabra) → **
 > ⚠️ Los proyectos de API sin auditar suben los vídeos como **privados**. Solicita la auditoría
 > (formulario *YouTube API Services - Audit and Quota Extension*) para que se publiquen en público.
 
+## Facebook Reels (opcional)
+
+Si existen los secrets `FB_PAGE_ID` y `FB_PAGE_TOKEN`, cada short se publica también como Reel en la página de
+Facebook. Si faltan o Facebook falla, YouTube sigue funcionando igual.
+
+1. Crea una **página** de Facebook para el canal.
+2. En https://developers.facebook.com crea una app de tipo *Empresa*.
+3. En *Graph API Explorer* elige la app, genera un *User Token* con los permisos `pages_show_list`,
+   `pages_read_engagement`, `pages_manage_posts` y `publish_video`, y autoriza la página.
+4. Ejecuta `.venv/bin/python scripts/get_fb_token.py` (pide App ID, App secret y el token) y después
+   `gh secret set -f .fb.env`. El token de página resultante no caduca.
+
 ## Probar en local sin subir
 
 Requiere `ffmpeg` instalado.
