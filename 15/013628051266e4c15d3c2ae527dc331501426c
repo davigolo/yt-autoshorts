@@ -1,0 +1,31 @@
+autoshorts/facebook.py
+  s_e27b3dfbf2dd88::t_37f796d11d7ff8 1-46
+.github/workflows/daily.yml
+  s_e27b3dfbf2dd88::t_5f033d9e859ee5 41-42
+scripts/get_fb_token.py
+  s_e27b3dfbf2dd88::t_f3b4e3548dffbf 1-44
+.gitignore
+  s_e27b3dfbf2dd88::t_d95b73cee515b2 7
+README.md
+  s_e27b3dfbf2dd88::t_e9e732f2775203 31-42
+config.yaml
+  s_e27b3dfbf2dd88::t_a3f90c60a20a12 35-37
+main.py
+  s_e27b3dfbf2dd88::t_a8089945e5b971 9,61-67
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "15013628051266e4c15d3c2ae527dc331501426c",
+  "prompts": {},
+  "sessions": {
+    "s_e27b3dfbf2dd88": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "a49147ad-be38-4bd8-afb5-080f5d0bf6a2",
+        "model": "unknown"
+      },
+      "human_author": "david <davidglom@ext.inditex.com>"
+    }
+  }
+}
