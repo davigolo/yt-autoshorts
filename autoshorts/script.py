@@ -43,7 +43,7 @@ Devuelve SOLO JSON con esta forma:
   "description": "descripción de 2-3 frases que resuma el tema sin revelar la respuesta e incluya de forma natural las palabras clave que alguien buscaría en YouTube",
   "tags": ["8 a 12 etiquetas: tema concreto, nombres propios y búsquedas relacionadas"],
   "hashtags": ["3 a 5 hashtags en español específicos del tema (p. ej. 'tardigrados', 'espacio', 'animalesextremos'), sin el símbolo #, sin espacios"],
-  "thumbnail_text": "2-4 palabras impactantes para la miniatura que generen curiosidad SIN dar la respuesta (p. ej. 'SOBREVIVIÓ AL ESPACIO')",
+  "thumbnail_text": "2-4 palabras impactantes para la miniatura. Debe plantear la pregunta o el misterio, NUNCA la respuesta, la cifra clave ni el desenlace del vídeo (bien: '¿CUÁNTO PESA UNA NUBE?', 'NADIE LO ESPERABA'; mal: 'PESA 100 ELEFANTES')",
   "scenes": [
     {{
       "text": "fragmento EXACTO de la narración que se oye en esta escena (una frase o media)",
@@ -60,7 +60,8 @@ Busca cualquier afirmación falsa, imprecisa, exagerada o sensacionalista (por e
 en el espacio" cuando solo sobrevive un tiempo en estado latente, cifras redondeadas de más, mitos presentados como
 hechos o fechas dudosas). Corrígelas con la versión exacta y comprobable, manteniendo el tono, la longitud, el gancho
 sin revelar la respuesta y la misma estructura de escenas. Aplica el mismo rigor a "title", "hook_text" y "description":
-si prometen algo que el vídeo no cumple o exageran, ajústalos. Si todo es correcto, devuélvelo igual.
+si prometen algo que el vídeo no cumple o exageran, ajústalos. "hook_text" y "thumbnail_text" NUNCA pueden revelar la
+respuesta, la cifra clave ni el desenlace: si lo hacen, reescríbelos como pregunta o misterio. Si todo es correcto, devuélvelo igual.
 
 Guion:
 {script}
