@@ -35,7 +35,16 @@ def main() -> None:
         print(f"{i}: {page['name']} ({page['id']})")
     page = pages[int(input("Número de la página: ")) if len(pages) > 1 else 0]
 
-    OUT.write_text(f"FB_PAGE_ID={page['id']}\nFB_PAGE_TOKEN={page['access_token']}\n")
+    lines = [f"FB_PAGE_ID={page['id']}", f"FB_PAGE_TOKEN={page['access_token']}"]
+    instagram = _get(page["id"], access_token=page["access_token"], fields="instagram_business_account{id,username}")
+    if "instagram_business_account" in instagram:
+        account = instagram["instagram_business_account"]
+        lines.append(f"IG_USER_ID={account['id']}")
+        print(f"Instagram vinculado: @{account.get('username')} ({account['id']})")
+    else:
+        print("La página no tiene una cuenta profesional de Instagram vinculada; no se publicará en Instagram")
+
+    OUT.write_text("\n".join(lines) + "\n")
     OUT.chmod(0o600)
     print(f"Guardado en {OUT}. Súbelo con: gh secret set -f .fb.env")
 

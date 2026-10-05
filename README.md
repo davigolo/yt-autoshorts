@@ -41,6 +41,32 @@ Facebook. Si faltan o Facebook falla, YouTube sigue funcionando igual.
 4. Ejecuta `.venv/bin/python scripts/get_fb_token.py` (pide App ID, App secret y el token) y después
    `gh secret set -f .fb.env`. El token de página resultante no caduca.
 
+## Instagram Reels (opcional)
+
+Si existe el secret `IG_USER_ID`, cada short se publica también como Reel en Instagram usando el mismo token de la
+página de Facebook.
+
+1. Convierte la cuenta de Instagram en **profesional** (creador o empresa) y vincúlala a la página de Facebook.
+2. Añade a la app el caso de uso de Instagram y, en *Graph API Explorer*, genera el *User Token* con los permisos de
+   Facebook anteriores más `instagram_basic` e `instagram_content_publish`.
+3. Ejecuta de nuevo `scripts/get_fb_token.py`: ahora `.fb.env` incluye `IG_USER_ID`. Súbelo con
+   `gh secret set -f .fb.env`.
+
+## TikTok (opcional)
+
+Si existen `TIKTOK_CLIENT_KEY`, `TIKTOK_CLIENT_SECRET` y `TIKTOK_REFRESH_TOKEN`, cada short se publica también en
+TikTok mediante la Content Posting API (marcado como contenido generado por IA).
+
+1. En https://developers.tiktok.com crea una app con los productos *Login Kit* y *Content Posting API* (con
+   *Direct Post* activado), el scope `video.publish` y una redirect URI propia.
+2. Ejecuta `.venv/bin/python scripts/get_tiktok_token.py`, autoriza tu cuenta y sube `gh secret set -f .tiktok.env`.
+   El refresh token dura un año.
+3. Mientras TikTok no audite la app, solo se puede publicar si la **cuenta de TikTok es privada** (error
+   `unaudited_client_can_only_post_to_private_accounts`), y los vídeos quedan como `SELF_ONLY`. Tras la auditoría,
+   vuelve a poner la cuenta pública: se publicará en público (configurable con `TIKTOK_PRIVACY_LEVEL`).
+4. Las credenciales actuales son del **sandbox** de la app; al aprobarse la auditoría hay que repetir el paso 2 con el
+   client key/secret de producción.
+
 ## Probar en local sin subir
 
 Requiere `ffmpeg` instalado.

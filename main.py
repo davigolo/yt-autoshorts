@@ -6,7 +6,7 @@ from pathlib import Path
 
 import yaml
 
-from autoshorts import facebook
+from autoshorts import facebook, instagram, tiktok
 from autoshorts.footage import gather_visuals
 from autoshorts.insights import build_insights, fetch_performance, format_weights
 from autoshorts.render import render, write_subtitles
@@ -72,6 +72,21 @@ def main() -> None:
                 print(f"Subido a Facebook: {entry['fb_video_id']}")
             except Exception as e:
                 print(f"No se pudo subir a Facebook ({type(e).__name__}: {e})")
+        social_caption = f"{script.title}\n\n{script.description}"
+        if instagram.is_configured():
+            try:
+                ig_caption = f"{social_caption}\n\n{hashtags(script.hashtags, config['instagram']['hashtags'])}"
+                entry["ig_media_id"] = instagram.upload_reel(output, ig_caption)
+                print(f"Subido a Instagram: {entry['ig_media_id']}")
+            except Exception as e:
+                print(f"No se pudo subir a Instagram ({type(e).__name__}: {e})")
+        if tiktok.is_configured():
+            try:
+                tt_caption = f"{social_caption}\n\n{hashtags(script.hashtags, config['tiktok']['hashtags'])}"
+                entry["tiktok_publish_id"], status = tiktok.upload_video(output, tt_caption)
+                print(f"Subido a TikTok: {entry['tiktok_publish_id']} [{status}]")
+            except Exception as e:
+                print(f"No se pudo subir a TikTok ({type(e).__name__}: {e})")
 
     history.append(entry)
     HISTORY.write_text(json.dumps(history, ensure_ascii=False, indent=2), encoding="utf-8")
