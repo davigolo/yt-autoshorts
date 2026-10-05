@@ -1,0 +1,36 @@
+scripts/get_fb_token.py
+  s_04869bb8859425::t_ab552b50175969 38-47
+README.md
+  s_04869bb8859425::t_c3363f8d6b79c8 44-66
+  s_04869bb8859425::t_7980ee444e4015 67-69
+autoshorts/instagram.py
+  s_04869bb8859425::t_c559e3ae23a581 1-69
+main.py
+  s_04869bb8859425::t_467087d62a66bd 9,75-89
+.github/workflows/daily.yml
+  s_04869bb8859425::t_435da5ac32de79 43-46
+scripts/get_tiktok_token.py
+  s_04869bb8859425::t_9ffa040bcf4ff6 1-55
+autoshorts/tiktok.py
+  s_04869bb8859425::t_19b59abf7f1dce 1-109
+.gitignore
+  s_04869bb8859425::t_37a5c2235a1876 8
+config.yaml
+  s_04869bb8859425::t_a5e2d74741cce3 36-41
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1e3f8b5bd296a1f21b23fa73f5543a6065a62a5e",
+  "prompts": {},
+  "sessions": {
+    "s_04869bb8859425": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "31f7c450-cc83-4fad-b2ee-db3643e8154a",
+        "model": "unknown"
+      },
+      "human_author": "david <davidglom@ext.inditex.com>"
+    }
+  }
+}
