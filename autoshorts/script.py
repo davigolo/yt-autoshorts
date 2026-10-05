@@ -40,8 +40,10 @@ Devuelve SOLO JSON con esta forma:
   "topic": "tema en 3-6 palabras",
   "hook_text": "texto para mostrar en pantalla el primer segundo, máximo 5 palabras, que genere curiosidad SIN dar la respuesta",
   "title": "título con curiosidad y sin clickbait falso, máximo 60 caracteres",
-  "description": "descripción de 1-2 frases",
-  "tags": ["5 a 10 etiquetas"],
+  "description": "descripción de 2-3 frases que resuma el tema sin revelar la respuesta e incluya de forma natural las palabras clave que alguien buscaría en YouTube",
+  "tags": ["8 a 12 etiquetas: tema concreto, nombres propios y búsquedas relacionadas"],
+  "hashtags": ["3 a 5 hashtags en español específicos del tema (p. ej. 'tardigrados', 'espacio', 'animalesextremos'), sin el símbolo #, sin espacios"],
+  "thumbnail_text": "2-4 palabras impactantes para la miniatura que generen curiosidad SIN dar la respuesta (p. ej. 'SOBREVIVIÓ AL ESPACIO')",
   "scenes": [
     {{
       "text": "fragmento EXACTO de la narración que se oye en esta escena (una frase o media)",
@@ -84,6 +86,8 @@ class Script:
     description: str
     tags: list[str]
     scenes: list[Scene]
+    hashtags: list[str]
+    thumbnail_text: str
 
     @property
     def narration(self) -> str:
@@ -139,7 +143,7 @@ def _fact_check(data: dict, config: dict) -> dict:
         return data
     for correction in checked.get("corrections") or []:
         print(f"Corrección: {correction}")
-    return {**data, **{k: checked[k] for k in ("title", "hook_text", "description", "scenes") if checked.get(k)}}
+    return {**data, **{k: checked[k] for k in ("title", "hook_text", "description", "thumbnail_text", "scenes") if checked.get(k)}}
 
 
 def generate_script(config: dict, history: list[dict], insights: str = "", weights: dict[str, float] | None = None) -> Script:
@@ -167,4 +171,6 @@ def generate_script(config: dict, history: list[dict], insights: str = "", weigh
             Scene(text=s["text"], subject=s["subject"], wiki=s.get("wiki") or None, stock=s["stock"])
             for s in data["scenes"] if s.get("text", "").strip()
         ],
+        hashtags=[str(h) for h in data.get("hashtags", [])][:5],
+        thumbnail_text=data.get("thumbnail_text") or data["hook_text"],
     )

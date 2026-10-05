@@ -3,6 +3,7 @@ from pathlib import Path
 
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
 from googleapiclient.http import MediaFileUpload
 
 SCOPES = [
@@ -22,12 +23,12 @@ def _credentials() -> Credentials:
     )
 
 
-def upload(video: Path, title: str, description: str, tags: list[str], config: dict) -> str:
+def upload(video: Path, thumbnail: Path | None, title: str, description: str, tags: list[str], config: dict) -> str:
     youtube = build("youtube", "v3", credentials=_credentials(), cache_discovery=False)
     body = {
         "snippet": {
             "title": title,
-            "description": f"{description}\n\n{config['upload']['hashtags']}",
+            "description": description,
             "tags": tags,
             "categoryId": config["upload"]["category_id"],
         },
@@ -45,4 +46,11 @@ def upload(video: Path, title: str, description: str, tags: list[str], config: d
     response = None
     while response is None:
         _, response = request.next_chunk()
-    return response["id"]
+    video_id = response["id"]
+    if thumbnail:
+        try:
+            youtube.thumbnails().set(videoId=video_id, media_body=MediaFileUpload(str(thumbnail), mimetype="image/jpeg")).execute()
+            print("Miniatura personalizada subida")
+        except HttpError as e:
+            print(f"No se pudo poner la miniatura: {e}")
+    return video_id

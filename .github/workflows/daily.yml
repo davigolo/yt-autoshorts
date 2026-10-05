@@ -54,6 +54,8 @@ jobs:
         if: always()
         with:
           name: short
-          path: build/short.mp4
+          path: |
+            build/short.mp4
+            build/thumbnail.jpg
           retention-days: 7
           if-no-files-found: ignore

@@ -11,6 +11,7 @@ from autoshorts.footage import gather_visuals
 from autoshorts.insights import build_insights, fetch_performance, format_weights
 from autoshorts.render import render, write_subtitles
 from autoshorts.script import generate_script
+from autoshorts.thumbnail import create_thumbnail, hashtags
 from autoshorts.upload import upload
 from autoshorts.voice import synthesize
 
@@ -50,15 +51,23 @@ def main() -> None:
     output = workdir / "short.mp4"
     render(visuals, words, [scene.text for scene in script.scenes], audio, subtitles, config, workdir, output, ROOT / "music")
     print(f"Vídeo generado: {output}")
+    thumbnail = None
+    try:
+        thumbnail = create_thumbnail(visuals[0], script.thumbnail_text, workdir, workdir / "thumbnail.jpg")
+        print(f"Miniatura: {thumbnail} ({script.thumbnail_text})")
+    except Exception as e:
+        print(f"No se pudo generar la miniatura ({type(e).__name__}: {e})")
+    yt_description = f"{script.description}\n\n{hashtags(script.hashtags, config['upload']['hashtags'])}"
+    print(f"Descripción:\n{yt_description}")
 
     entry = {"date": date.today().isoformat(), "format": script.format, "topic": script.topic, "title": script.title}
     if not args.no_upload:
-        video_id = upload(output, script.title, script.description, script.tags, config)
+        video_id = upload(output, thumbnail, script.title, yt_description, script.tags, config)
         entry["video_id"] = video_id
         print(f"Subido: https://youtube.com/shorts/{video_id}")
         if facebook.is_configured():
             try:
-                fb_description = f"{script.title}\n\n{script.description}\n\n{config['facebook']['hashtags']}"
+                fb_description = f"{script.title}\n\n{script.description}\n\n{hashtags(script.hashtags, config['facebook']['hashtags'])}"
                 entry["fb_video_id"] = facebook.upload_reel(output, fb_description)
                 print(f"Subido a Facebook: {entry['fb_video_id']}")
             except Exception as e:
