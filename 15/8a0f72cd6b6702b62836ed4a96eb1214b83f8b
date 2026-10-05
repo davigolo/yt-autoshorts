@@ -1,0 +1,21 @@
+autoshorts/script.py
+  s_e27b3dfbf2dd88::t_49b91ff91677b1 56-69,127-144,158
+scripts/get_token.py
+  s_e27b3dfbf2dd88::t_b825e6c8d816e8 9
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "158a0f72cd6b6702b62836ed4a96eb1214b83f8b",
+  "prompts": {},
+  "sessions": {
+    "s_e27b3dfbf2dd88": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "a49147ad-be38-4bd8-afb5-080f5d0bf6a2",
+        "model": "unknown"
+      },
+      "human_author": "david <davidglom@ext.inditex.com>"
+    }
+  }
+}
