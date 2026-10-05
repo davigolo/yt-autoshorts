@@ -53,6 +53,20 @@ Devuelve SOLO JSON con esta forma:
 }}"""
 
 
+FACT_CHECK_PROMPT = """Eres verificador de datos de un canal de divulgación. Revisa este guion de un short en {language}.
+Busca cualquier afirmación falsa, imprecisa, exagerada o sensacionalista (por ejemplo, decir que un animal "puede vivir
+en el espacio" cuando solo sobrevive un tiempo en estado latente, cifras redondeadas de más, mitos presentados como
+hechos o fechas dudosas). Corrígelas con la versión exacta y comprobable, manteniendo el tono, la longitud, el gancho
+sin revelar la respuesta y la misma estructura de escenas. Aplica el mismo rigor a "title", "hook_text" y "description":
+si prometen algo que el vídeo no cumple o exageran, ajústalos. Si todo es correcto, devuélvelo igual.
+
+Guion:
+{script}
+
+Devuelve SOLO JSON con exactamente la misma forma que el guion recibido y un campo extra
+"corrections": ["lista breve de lo que has cambiado y por qué; vacía si nada"]."""
+
+
 @dataclass
 class Scene:
     text: str
@@ -110,6 +124,24 @@ def _pick_format(recent_formats: list[str], weights: dict[str, float]) -> str:
     return random.choices(options, weights=[weights.get(f, 1.0) for f in options])[0]
 
 
+def _fact_check(data: dict, config: dict) -> dict:
+    try:
+        checked = generate_json(
+            FACT_CHECK_PROMPT.format(language=config["channel"]["language"], script=json.dumps(data, ensure_ascii=False)),
+            config["script"]["models"],
+        )
+        if isinstance(checked, list):
+            checked = checked[0]
+        if not checked.get("scenes") or not all(s.get("text") for s in checked["scenes"]):
+            raise ValueError("verificación sin escenas")
+    except Exception as e:
+        print(f"Verificación de datos no disponible ({type(e).__name__}: {e}); se usa el guion original")
+        return data
+    for correction in checked.get("corrections") or []:
+        print(f"Corrección: {correction}")
+    return {**data, **{k: checked[k] for k in ("title", "hook_text", "description", "scenes") if checked.get(k)}}
+
+
 def generate_script(config: dict, history: list[dict], insights: str = "", weights: dict[str, float] | None = None) -> Script:
     video_format = _pick_format([h.get("format", "") for h in history], weights or {})
     prompt = PROMPT.format(
@@ -123,6 +155,7 @@ def generate_script(config: dict, history: list[dict], insights: str = "", weigh
     data = generate_json(prompt, config["script"]["models"])
     if isinstance(data, list):
         data = data[0]
+    data = _fact_check(data, config)
     return Script(
         topic=data["topic"],
         format=video_format,
