@@ -1,0 +1,31 @@
+.github/workflows/daily.yml
+  s_103045bd360d77::t_edb331b84bde56 5-7
+.github/workflows/publish.yml
+  s_103045bd360d77::t_8ddb15dbc77a3d 5-7
+README.md
+  s_103045bd360d77::t_e2c1a7941fbbab 27,36-43
+autoshorts/insights.py
+  s_103045bd360d77::t_ae3dcee709550b 10,28
+autoshorts/publish.py
+  s_103045bd360d77::t_028f0cd6a85d2e 45,49,66-68
+config.yaml
+  s_103045bd360d77::t_6006b2765abf6c 38
+publish.py
+  s_103045bd360d77::t_22484d2cae213a 31-34
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ebb9cf84fedb246cec6a020b3494dc7623568b54",
+  "prompts": {},
+  "sessions": {
+    "s_103045bd360d77": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "d6899d16-945e-4c9d-abf6-5fa30a9a3cd2",
+        "model": "unknown"
+      },
+      "human_author": "david <davidglom@ext.inditex.com>"
+    }
+  }
+}
