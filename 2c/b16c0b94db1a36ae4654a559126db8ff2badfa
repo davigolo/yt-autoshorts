@@ -1,0 +1,35 @@
+.github/workflows/publish.yml
+  s_103045bd360d77::t_edc179d6a40394 1-42
+README.md
+  s_103045bd360d77::t_74b8c1c0bbd10c 27,32-50
+autoshorts/playlists.py
+  s_103045bd360d77::t_d9b6e565fb6a12 1-38
+autoshorts/publish.py
+  s_103045bd360d77::t_51fc11b9ea864d 1-70
+autoshorts/script.py
+  s_103045bd360d77::t_bf8e6f4c7ffa17 45,93,154,162,181
+autoshorts/upload.py
+  s_103045bd360d77::t_4e444fb0ce1e66 4-5,11-17,30-55,61-63,66,68-69,87-90
+config.yaml
+  s_103045bd360d77::t_f43646f3dde592 29,31,34-54
+main.py
+  s_103045bd360d77::t_58125f1e85eb7b 4,43,60-61,66-68
+publish.py
+  s_103045bd360d77::t_fd2488660f7143 1-36
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2cb16c0b94db1a36ae4654a559126db8ff2badfa",
+  "prompts": {},
+  "sessions": {
+    "s_103045bd360d77": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "d6899d16-945e-4c9d-abf6-5fa30a9a3cd2",
+        "model": "unknown"
+      },
+      "human_author": "david <davidglom@ext.inditex.com>"
+    }
+  }
+}
