@@ -8,7 +8,7 @@ script:
     - "gemini-3.8-flash"
     - "gemini-3.5-flash"
     - "gemini-flash-latest"
-  target_words: 80
+  target_words: 100
 
 voice:
   name: "es-ES-AlvaroNeural"
@@ -18,7 +18,7 @@ video:
   width: 1080
   height: 1920
   fps: 30
-  scenes: 7
+  scenes: 9
   segment_seconds: 2.5
   zoom: 0.12
 

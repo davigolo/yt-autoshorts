@@ -52,6 +52,19 @@ máximo 5 hashtags (los del tema primero) y el short se añade a la lista de rep
 `config.yaml`; Gemini elige una y la lista se crea pública si no existe) para encadenar visualizaciones.
 Las pantallas finales y tarjetas no existen en los Shorts ni en la API.
 
+## Gancho (primer segundo)
+
+Las analíticas (oct. 2026) muestran que solo el ~43 % de quien ve el short pasa de los primeros segundos (`engagedViews`
+/ `views`), aunque quien se queda lo ve casi entero. Comparado con 14 shorts virales del nicho (12-40 M de vistas):
+
+- **Formatos** (`FORMATS` en `autoshorts/script.py`): `dato`, `mito`, `top3` (cuenta atrás "Número tres…"),
+  `que_pasaria` (por etapas "Día 1 / Año 1") e `historia` (arranca en mitad de la acción). Está prohibido abrir
+  preguntando al espectador ("¿Sabías…?", "¿Cuánto crees…?"); el antiguo formato `reto` se ha retirado.
+- **Primera escena en vídeo**: si Pexels tiene vídeos para el gancho, solo se ofrecen vídeos, con zoom marcado.
+- **Texto en pantalla**: título grande sin caja, subtítulos de 2 palabras en Anton y rótulos de etapa en amarillo
+  (`label` de cada escena). Las fotos se encuadran más grandes en vez de quedar pequeñas sobre fondo difuminado.
+- **Duración**: ~100 palabras y 9 escenas (30-40 s).
+
 ## Facebook Reels (opcional)
 
 Si existen los secrets `FB_PAGE_ID` y `FB_PAGE_TOKEN`, cada short se publica también como Reel en la página de

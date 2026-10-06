@@ -15,6 +15,7 @@ WIKI_HEADERS = {"User-Agent": "yt-autoshorts/1.0 (https://github.com/davigolo/yt
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
 MIN_IMAGE_SIDE = 600
 PEXELS_PER_SCENE = 3
+HOOK_PEXELS = 6
 COMMONS_PER_SCENE = 2
 
 PICK_PROMPT = """Eres editor de vídeo de un short de curiosidades. Para cada escena tienes varias imágenes candidatas
@@ -25,6 +26,9 @@ la narración de esa escena o el sujeto indicado.
 - Entre varias válidas, prefiere la más clara y llamativa, y un vídeo si muestra de verdad lo narrado.
 - Responde null SOLO si ninguna candidata tiene relación con lo narrado (por ejemplo, una calle cualquiera, una
   persona disfrazada o un objeto distinto al que se nombra).
+- La escena 0 es el gancho y decide si el espectador desliza: elige un VÍDEO (candidatas que empiezan por "p") con
+  movimiento visible desde el primer fotograma, el sujeto grande y colores vivos. Solo si ningún vídeo tiene relación,
+  elige la imagen más impactante.
 
 Escenas:
 {scenes}
@@ -92,7 +96,7 @@ def _best_file(video: dict, min_height: int) -> str | None:
     return min(good, key=lambda f: f["height"])["link"]
 
 
-def _pexels_candidates(scene: Scene, index: int, min_height: int, used: set[int]) -> list[Candidate]:
+def _pexels_candidates(scene: Scene, index: int, min_height: int, used: set[int], limit: int) -> list[Candidate]:
     data = _get(
         PEXELS_URL,
         {"query": scene.stock, "orientation": "portrait", "per_page": 15, "size": "medium"},
@@ -106,7 +110,7 @@ def _pexels_candidates(scene: Scene, index: int, min_height: int, used: set[int]
         if link and video.get("image"):
             used.add(video["id"])
             out.append(Candidate(f"p{index}_{len(out)}", index, "video", video["image"], link, video["duration"]))
-        if len(out) >= PEXELS_PER_SCENE:
+        if len(out) >= limit:
             break
     return out
 
@@ -119,12 +123,14 @@ def _collect(scenes: list[Scene], min_height: int) -> list[list[Candidate]]:
         for source in (
             lambda: _wiki_candidates(scene, i),
             lambda: _commons_candidates(scene, i),
-            lambda: _pexels_candidates(scene, i, min_height, used),
+            lambda: _pexels_candidates(scene, i, min_height, used, HOOK_PEXELS if i == 0 else PEXELS_PER_SCENE),
         ):
             try:
                 found += source()
             except requests.RequestException as e:
                 print(f"Búsqueda fallida en escena {i} ({e})")
+        if i == 0 and any(c.kind == "video" for c in found):
+            found = [c for c in found if c.kind == "video"]
         per_scene.append(found)
     return per_scene
 
@@ -164,7 +170,9 @@ def _pick(scenes: list[Scene], per_scene: list[list[Candidate]], models: list[st
         return [by_id.get(str(c)) if c else None for c in list(choices)[:len(scenes)]] + [None] * (len(scenes) - len(choices))
     except Exception as e:
         print(f"Selección visual no disponible ({type(e).__name__}: {e}); se usa la primera candidata")
-        return [cands[0] if cands else None for cands in per_scene]
+        first = [cands[0] if cands else None for cands in per_scene]
+        first[0] = next((c for c in per_scene[0] if c.kind == "video"), first[0]) if per_scene else None
+        return first
 
 
 def _fill_gaps(chosen: list[Candidate | None], per_scene: list[list[Candidate]]) -> list[Candidate | None]:

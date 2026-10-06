@@ -45,7 +45,10 @@ def main() -> None:
     audio = workdir / "voice.mp3"
     words = synthesize(script.narration, config, audio)
     subtitles = workdir / "subs.ass"
-    write_subtitles(words, script.hook_text, config, subtitles)
+    write_subtitles(
+        words, script.hook_text, [scene.text for scene in script.scenes], [scene.label for scene in script.scenes],
+        config, subtitles,
+    )
 
     visuals = gather_visuals(script.scenes, config, workdir)
     output = workdir / "short.mp4"

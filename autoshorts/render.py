@@ -14,8 +14,9 @@ WrapStyle: 0
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Caption,DejaVu Sans,92,&H00FFFFFF,&H00FFFFFF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,8,3,2,80,80,620,1
-Style: Hook,DejaVu Sans,100,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,-1,0,0,0,100,100,0,0,3,24,0,8,90,90,360,1
+Style: Caption,Anton,180,&H00FFFFFF,&H00FFFFFF,&H00000000,&H80000000,0,0,0,0,100,100,1,0,1,9,4,2,70,70,560,1
+Style: Hook,Anton,170,&H00FFFFFF,&H00FFFFFF,&H00000000,&H80000000,0,0,0,0,100,100,1,0,1,10,5,8,70,70,300,1
+Style: Label,Anton,200,&H003FD2FF,&H003FD2FF,&H00000000,&H80000000,0,0,0,0,100,100,1,0,1,10,5,8,70,70,600,1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
@@ -23,6 +24,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 HIGHLIGHT = r"{\c&H3FD2FF&\fscx112\fscy112}"
 RESET = r"{\r}"
 HOOK_SECONDS = 2.8
+HOOK_ZOOM = 2.5
+FONTS_DIR = Path(__file__).parent.parent / "fonts"
 TAIL_SECONDS = 0.2
 SAMPLE_RATE = 48000
 MUSIC_EXTENSIONS = {".mp3", ".m4a", ".wav", ".ogg"}
@@ -55,9 +58,17 @@ def _clean(text: str) -> str:
     return text.upper().replace("{", "").replace("}", "").replace("\\", "")
 
 
-def write_subtitles(words: list[Word], hook_text: str, config: dict, out: Path, words_per_line: int = 3) -> None:
+def write_subtitles(
+    words: list[Word], hook_text: str, scene_texts: list[str], labels: list[str | None], config: dict, out: Path,
+    words_per_line: int = 2,
+) -> None:
     lines = [ASS_HEADER.format(w=config["video"]["width"], h=config["video"]["height"])]
     lines.append(f"Dialogue: 1,{_ts(0)},{_ts(HOOK_SECONDS)},Hook,,0,0,0,,{_clean(hook_text)}\n")
+    starts = _scene_starts(words, scene_texts)
+    ends = starts[1:] + [words[-1].end + TAIL_SECONDS if words else 0.0]
+    for label, start, end in zip(labels, starts, ends):
+        if label and end > start:
+            lines.append(f"Dialogue: 1,{_ts(start)},{_ts(end)},Label,,0,0,0,,{_clean(label)}\n")
     for i in range(0, len(words), words_per_line):
         group = words[i:i + words_per_line]
         group_end = words[i + words_per_line].start if i + words_per_line < len(words) else group[-1].end + TAIL_SECONDS
@@ -101,7 +112,7 @@ def _segment_filter(source: Path, w: int, h: int, fps: int, zoom: float, progres
         return (
             f"[0:v]fps={fps},split[a][b];"
             f"[a]scale={w}:{h}:force_original_aspect_ratio=increase,crop={w}:{h},boxblur=40:2,eq=brightness=-0.2[bg];"
-            f"[b]scale={w}:{h}:force_original_aspect_ratio=decrease[fg];"
+            f"[b]scale={round(w * 1.5 / 2) * 2}:-2,crop='min(iw,{w})':'min(ih,{h})'[fg];"
             f"[bg][fg]overlay=(W-w)/2:(H-h)/2,{kenburns}[v]"
         )
     return (
@@ -132,6 +143,7 @@ def render(
             continue
         length = end - start
         progress = f"t/{length:.3f}" if i % 2 == 0 else f"(1-t/{length:.3f})"
+        segment_zoom = zoom * HOOK_ZOOM if i == 0 else zoom
         if visual in clip_lengths:
             seek = offset % max(clip_lengths[visual] - length, 0.01)
             source = ["-ss", f"{seek:.3f}", "-stream_loop", "-1", "-i", str(visual)]
@@ -140,7 +152,7 @@ def render(
         part = workdir / f"part_{i}.mp4"
         _run([
             "ffmpeg", "-y", *source, "-frames:v", str(frames), "-an",
-            "-filter_complex", _segment_filter(visual, w, h, fps, zoom, progress), "-map", "[v]",
+            "-filter_complex", _segment_filter(visual, w, h, fps, segment_zoom, progress), "-map", "[v]",
             "-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p", str(part),
         ])
         parts.append(part)
@@ -175,7 +187,7 @@ def render(
 
     _run([
         "ffmpeg", "-y", "-i", str(joined.resolve()), "-i", str(mixed.resolve()),
-        "-filter_complex", f"[0:v]ass={subtitles.name},tpad=stop_mode=clone:stop_duration=1[v]",
+        "-filter_complex", f"[0:v]ass={subtitles.name}:fontsdir={FONTS_DIR.resolve()},tpad=stop_mode=clone:stop_duration=1[v]",
         "-map", "[v]", "-map", "1:a", "-c:v", "libx264", "-preset", "medium", "-crf", "20",
         "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "192k", "-t", f"{total:.3f}",
         "-movflags", "+faststart", str(out.resolve()),
