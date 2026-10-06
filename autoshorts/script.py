@@ -42,6 +42,7 @@ Devuelve SOLO JSON con esta forma:
   "title": "título con curiosidad y sin clickbait falso, máximo 60 caracteres",
   "description": "descripción de 2-3 frases que resuma el tema sin revelar la respuesta e incluya de forma natural las palabras clave que alguien buscaría en YouTube",
   "tags": ["8 a 12 etiquetas: tema concreto, nombres propios y búsquedas relacionadas"],
+  "playlist": "lista de reproducción del canal a la que pertenece el tema, exactamente una de: {playlists}",
   "hashtags": ["3 a 5 hashtags en español específicos del tema (p. ej. 'tardigrados', 'espacio', 'animalesextremos'), sin el símbolo #, sin espacios"],
   "thumbnail_text": "2-4 palabras impactantes para la miniatura. Debe plantear la pregunta o el misterio, NUNCA la respuesta, la cifra clave ni el desenlace del vídeo (bien: '¿CUÁNTO PESA UNA NUBE?', 'NADIE LO ESPERABA'; mal: 'PESA 100 ELEFANTES')",
   "scenes": [
@@ -89,6 +90,7 @@ class Script:
     scenes: list[Scene]
     hashtags: list[str]
     thumbnail_text: str
+    playlist: str | None
 
     @property
     def narration(self) -> str:
@@ -149,6 +151,7 @@ def _fact_check(data: dict, config: dict) -> dict:
 
 def generate_script(config: dict, history: list[dict], insights: str = "", weights: dict[str, float] | None = None) -> Script:
     video_format = _pick_format([h.get("format", "") for h in history], weights or {})
+    playlists = list(config.get("playlists", {}))
     prompt = PROMPT.format(
         **config["channel"],
         format_rule=FORMATS[video_format],
@@ -156,6 +159,7 @@ def generate_script(config: dict, history: list[dict], insights: str = "", weigh
         target_words=config["script"]["target_words"],
         scenes=config["video"]["scenes"],
         history="; ".join(h["topic"] for h in history[-200:]) or "ninguno",
+        playlists=", ".join(playlists),
     )
     data = generate_json(prompt, config["script"]["models"])
     if isinstance(data, list):
@@ -174,4 +178,5 @@ def generate_script(config: dict, history: list[dict], insights: str = "", weigh
         ],
         hashtags=[str(h) for h in data.get("hashtags", [])][:5],
         thumbnail_text=data.get("thumbnail_text") or data["hook_text"],
+        playlist=data.get("playlist") if data.get("playlist") in playlists else None,
     )

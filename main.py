@@ -1,7 +1,7 @@
 import argparse
 import json
 import shutil
-from datetime import date
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 import yaml
@@ -40,7 +40,7 @@ def main() -> None:
         print(f"Sin estadísticas ({type(e).__name__}: {e}); se genera sin ellas")
 
     script = generate_script(config, history, insights, weights)
-    print(f"Formato: {script.format}\nTema: {script.topic}\nGancho: {script.hook_text}\nTítulo: {script.title}")
+    print(f"Formato: {script.format}\nTema: {script.topic}\nGancho: {script.hook_text}\nTítulo: {script.title}\nLista: {script.playlist}")
 
     audio = workdir / "voice.mp3"
     words = synthesize(script.narration, config, audio)
@@ -57,14 +57,15 @@ def main() -> None:
         print(f"Miniatura: {thumbnail} ({script.thumbnail_text})")
     except Exception as e:
         print(f"No se pudo generar la miniatura ({type(e).__name__}: {e})")
-    yt_description = f"{script.description}\n\n{hashtags(script.hashtags, config['upload']['hashtags'])}"
+    yt_hashtags = hashtags(script.hashtags, config["upload"]["hashtags"], config["upload"]["max_hashtags"])
+    yt_description = f"{script.description}\n\n{yt_hashtags}"
     print(f"Descripción:\n{yt_description}")
 
     entry = {"date": date.today().isoformat(), "format": script.format, "topic": script.topic, "title": script.title}
     if not args.no_upload:
-        video_id = upload(output, thumbnail, script.title, yt_description, script.tags, config)
-        entry["video_id"] = video_id
-        print(f"Subido: https://youtube.com/shorts/{video_id}")
+        video_id, privacy = upload(output, thumbnail, script.title, yt_description, script.tags, script.playlist, config)
+        entry.update(video_id=video_id, privacy=privacy, uploaded_at=datetime.now(timezone.utc).isoformat(timespec="seconds"))
+        print(f"Subido ({privacy}): https://youtube.com/shorts/{video_id}")
         if facebook.is_configured():
             try:
                 fb_description = f"{script.title}\n\n{script.description}\n\n{hashtags(script.hashtags, config['facebook']['hashtags'])}"

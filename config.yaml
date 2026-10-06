@@ -26,10 +26,32 @@ music:
   volume: 0.12
 
 upload:
-  privacy: "public"
+  privacy: "unlisted"
   category_id: "27"
+  language: "es"
   contains_synthetic_media: true
   hashtags: "#shorts #curiosidades #sabiasque"
+  max_hashtags: 5
+
+publish:
+  after_hours: 22
+
+playlists:
+  ciencia:
+    title: "Curiosidades de ciencia"
+    description: "Datos sorprendentes de física, química y tecnología explicados en menos de un minuto. Ciencia real, rápida y fácil de entender."
+  historia:
+    title: "Curiosidades de historia"
+    description: "Momentos, personajes y objetos de la historia que casi nadie conoce, contados en menos de un minuto."
+  naturaleza:
+    title: "Curiosidades de animales y naturaleza"
+    description: "Animales, plantas y fenómenos naturales increíbles explicados en menos de un minuto."
+  espacio:
+    title: "Curiosidades del espacio"
+    description: "Planetas, estrellas y misterios del universo explicados en menos de un minuto."
+  cuerpo_humano:
+    title: "Curiosidades del cuerpo humano"
+    description: "Lo que tu cuerpo hace sin que te des cuenta, explicado en menos de un minuto."
 
 facebook:
   hashtags: "#curiosidades #sabiasque #ciencia #reels"

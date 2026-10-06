@@ -24,10 +24,29 @@ Pipeline: **Gemini** (guion dividido en escenas) → **edge-tts** (voz + tiempos
       ```
 4. Sube el proyecto a un repo de GitHub y añade en *Settings → Secrets and variables → Actions*:
    `GEMINI_API_KEY`, `PEXELS_API_KEY`, `YT_CLIENT_ID`, `YT_CLIENT_SECRET`, `YT_REFRESH_TOKEN`.
-5. Lanza *Actions → Daily Short → Run workflow* para probar. Después se ejecuta solo cada día a las 16:00 UTC.
+5. Lanza *Actions → Daily Short → Run workflow* para probar. Después se ejecuta solo cada día a las 11:00, 16:00 y 19:00 UTC.
 
 > ⚠️ Los proyectos de API sin auditar suben los vídeos como **privados**. Solicita la auditoría
 > (formulario *YouTube API Services - Audit and Quota Extension*) para que se publiquen en público.
+
+## Publicación en oculto y paso a público
+
+Cada short se sube en **oculto** (`upload.privacy: "unlisted"`) para que YouTube lo analice antes de enseñarlo, y
+`.github/workflows/publish.yml` lo pasa a **público al día siguiente**, en la misma franja en que se subió
+(11:00, 16:00 y 19:00 UTC). `publish.py` publica los shorts de `history.json` que llevan al menos `publish.after_hours`
+(22 h) en oculto y ya están procesados; no guarda estado, así que si una ejecución falla los publica la siguiente.
+
+- Ajusta los cron de `publish.yml` a las horas en que tu audiencia está conectada (Studio → Estadísticas → Audiencia →
+  *Cuándo están conectados tus espectadores*).
+- Si quieres que un short no se publique, pásalo a **privado** en Studio: solo se tocan los que siguen en oculto.
+- Requiere el scope `youtube.force-ssl` en el token. Si falta, los shorts se suben directamente en público (comportamiento
+  anterior) y el log lo avisa. Para activarlo: `.venv/bin/python scripts/get_token.py` y `gh secret set -f .yt.env`.
+- `.venv/bin/python publish.py --dry-run` muestra qué se publicaría sin cambiar nada.
+
+Además, en cada subida: contenido sintético declarado, "no es para niños", idioma `es`, contador de "me gusta" visible,
+máximo 5 hashtags (los del tema primero) y el short se añade a la lista de reproducción de su temática (`playlists` en
+`config.yaml`; Gemini elige una y la lista se crea pública si no existe) para encadenar visualizaciones.
+Las pantallas finales y tarjetas no existen en los Shorts ni en la API.
 
 ## Facebook Reels (opcional)
 
