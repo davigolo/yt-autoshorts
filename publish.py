@@ -28,7 +28,10 @@ def main() -> None:
     entries = pending(history)
     statuses = fetch_statuses(youtube, [e["video_id"] for e in entries])
     overrides = {"selfDeclaredMadeForKids": False, "containsSyntheticMedia": config["upload"]["contains_synthetic_media"]}
-    published = publish_due(youtube, entries, statuses, config["publish"]["after_hours"], overrides, dry_run=args.dry_run)
+    settings = config["publish"]
+    published = publish_due(
+        youtube, entries, statuses, settings["after_hours"], overrides, settings["max_per_run"], dry_run=args.dry_run,
+    )
     print(f"{published} vídeo(s) publicados")
 
 

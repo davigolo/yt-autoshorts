@@ -24,7 +24,7 @@ Pipeline: **Gemini** (guion dividido en escenas) → **edge-tts** (voz + tiempos
       ```
 4. Sube el proyecto a un repo de GitHub y añade en *Settings → Secrets and variables → Actions*:
    `GEMINI_API_KEY`, `PEXELS_API_KEY`, `YT_CLIENT_ID`, `YT_CLIENT_SECRET`, `YT_REFRESH_TOKEN`.
-5. Lanza *Actions → Daily Short → Run workflow* para probar. Después se ejecuta solo cada día a las 11:00, 16:00 y 19:00 UTC.
+5. Lanza *Actions → Daily Short → Run workflow* para probar. Después se ejecuta solo cada día a las 18:23, 19:53 y 21:23 UTC.
 
 > ⚠️ Los proyectos de API sin auditar suben los vídeos como **privados**. Solicita la auditoría
 > (formulario *YouTube API Services - Audit and Quota Extension*) para que se publiquen en público.
@@ -33,10 +33,14 @@ Pipeline: **Gemini** (guion dividido en escenas) → **edge-tts** (voz + tiempos
 
 Cada short se sube en **oculto** (`upload.privacy: "unlisted"`) para que YouTube lo analice antes de enseñarlo, y
 `.github/workflows/publish.yml` lo pasa a **público al día siguiente**, en la misma franja en que se subió
-(11:00, 16:00 y 19:00 UTC). `publish.py` publica los shorts de `history.json` que llevan al menos `publish.after_hours`
-(22 h) en oculto y ya están procesados; no guarda estado, así que si una ejecución falla los publica la siguiente.
+(18:23, 19:53 y 21:23 UTC). `publish.py` publica los shorts de `history.json` que llevan al menos `publish.after_hours`
+(22 h) en oculto y ya están procesados, como máximo `publish.max_per_run` por franja para que no compitan entre sí
+(si uno lleva más de 44 h, se publica igualmente). No guarda estado: si una ejecución falla, los publica la siguiente.
 
-- Ajusta los cron de `publish.yml` a las horas en que tu audiencia está conectada (Studio → Estadísticas → Audiencia →
+- Las franjas salen de las analíticas (oct. 2026): el público es sobre todo latinoamericano (México 22 %, EE. UU. 14 %,
+  España 10 %, Argentina, Perú, Colombia, Chile) y los shorts que salen entre las 19 y las 21 UTC hicieron de media ~1.830
+  vistas frente a ~1.300 en el resto del día. Los cron no están en punto porque GitHub retrasa hasta 3 h los de `:00`.
+- Revisa las franjas cuando haya más datos (Studio → Estadísticas → Audiencia →
   *Cuándo están conectados tus espectadores*).
 - Si quieres que un short no se publique, pásalo a **privado** en Studio: solo se tocan los que siguen en oculto.
 - Requiere el scope `youtube.force-ssl` en el token. Si falta, los shorts se suben directamente en público (comportamiento
