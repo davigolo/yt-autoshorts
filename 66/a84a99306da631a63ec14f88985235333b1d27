@@ -1,0 +1,31 @@
+.github/workflows/daily.yml
+  s_3d9537d35d6692::t_0ebf361fa5e327 38
+README.md
+  s_3d9537d35d6692::t_82d0c879938d6f 6-8,25-26,60-62,153-155,163-164
+autoshorts/footage.py
+  s_3d9537d35d6692::t_9e200ea679d203 3,12,71,120-131,140,156-157,167-168,172-193,254-256,258-268
+autoshorts/script.py
+  s_3d9537d35d6692::t_9ac008908bb13c 25-49,133,188-190,192-193,197-224,236-239,254-255,258-260,265-266,278-281
+autoshorts/voice.py
+  s_3d9537d35d6692::t_fc5a2487bb3352 2-4,9,12-13,23,36-117,119-129
+config.yaml
+  s_3d9537d35d6692::t_5a248311444aa1 45,47-56
+main.py
+  s_3d9537d35d6692::t_10710ea2cefe99 10,13,46-47,49-52,54-55,58
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "66a84a99306da631a63ec14f88985235333b1d27",
+  "prompts": {},
+  "sessions": {
+    "s_3d9537d35d6692": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "f3a79d48-42ff-4751-809b-09f5c8047cc9",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "david <davidglom@ext.inditex.com>"
+    }
+  }
+}
