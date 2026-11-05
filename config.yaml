@@ -1,7 +1,25 @@
 channel:
-  niche: "curiosidades sorprendentes de ciencia, historia y naturaleza"
+  strategy: "packaging-engineering-v1"
+  niche: "ingeniería de envases, tapas, cierres y precintos cotidianos"
   language: "español neutro"
-  audience: "público general curioso de España y Latinoamérica"
+  audience: "adultos curiosos de habla hispana que quieren entender cómo funcionan los envases que usan a diario"
+  description: >-
+    Nada de este envase está puesto al azar. Descubre la ingeniería de latas,
+    botellas, tapas, bolsas y precintos en vídeos cortos: un objeto, un mecanismo
+    y una explicación clara. Curiosidades en 45 segundos, ahora centrado en los
+    detalles que tienes delante y casi nunca miras. Narración y edición asistidas
+    por IA; las ilustraciones son explicativas, no pruebas de laboratorio.
+  keywords: "ingeniería cotidiana, envases, tapas, cierres, precintos, cómo funciona, diseño de envases"
+  editorial_brief: >-
+    Stay exclusively within everyday packaging and closure mechanisms. Each
+    episode explains one specific feature of one object, the practical problem
+    it solves, and how its shape or material solves it. Show the feature before
+    explaining it. Use a recognizable narrator with a brief genuine observation,
+    not a generic list of facts. Do not claim to have performed experiments or
+    measurements. Do not invent patents, dates, inventors, statistics or universal
+    explanations for designs that vary by manufacturer. Do not cover general
+    science, astronomy, animals, human biology, historical trivia or unrelated
+    household objects. Do not mix multiple objects in one episode.
 
 script:
   models:
@@ -9,6 +27,19 @@ script:
     - "gemini-3.5-flash"
     - "gemini-flash-latest"
   target_words: 100
+  topic_seeds:
+    - "The concave base of a beverage can and internal pressure"
+    - "The tamper-evident ring on a screw cap"
+    - "The ribs on a plastic bottle"
+    - "The curl around the rim of a metal can"
+    - "The interlocking profiles of a resealable food bag"
+    - "The seal under the cap of a food jar"
+    - "The vacuum button on a glass jar lid"
+    - "The layers of an aseptic beverage carton"
+    - "The corrugated layer in a cardboard shipping box"
+    - "The fold lines in a folding carton"
+    - "The tear notch in a sealed pouch"
+    - "The one-way valve on a coffee bag"
 
 voice:
   name: "es-ES-AlvaroNeural"
@@ -21,6 +52,7 @@ video:
   scenes: 9
   segment_seconds: 2.5
   zoom: 0.12
+  require_matching_visuals: true
 
 music:
   volume: 0.12
@@ -30,7 +62,7 @@ upload:
   category_id: "27"
   language: "es"
   contains_synthetic_media: true
-  hashtags: "#shorts #curiosidades #sabiasque"
+  hashtags: "#shorts #ingenieria #envases"
   max_hashtags: 5
 
 publish:
@@ -38,27 +70,15 @@ publish:
   max_per_run: 1
 
 playlists:
-  ciencia:
-    title: "Curiosidades de ciencia"
-    description: "Datos sorprendentes de física, química y tecnología explicados en menos de un minuto. Ciencia real, rápida y fácil de entender."
-  historia:
-    title: "Curiosidades de historia"
-    description: "Momentos, personajes y objetos de la historia que casi nadie conoce, contados en menos de un minuto."
-  naturaleza:
-    title: "Curiosidades de animales y naturaleza"
-    description: "Animales, plantas y fenómenos naturales increíbles explicados en menos de un minuto."
-  espacio:
-    title: "Curiosidades del espacio"
-    description: "Planetas, estrellas y misterios del universo explicados en menos de un minuto."
-  cuerpo_humano:
-    title: "Curiosidades del cuerpo humano"
-    description: "Lo que tu cuerpo hace sin que te des cuenta, explicado en menos de un minuto."
+  envases:
+    title: "Nada de este envase está puesto al azar"
+    description: "La ingeniería de latas, botellas, tapas, bolsas y precintos: un objeto, un mecanismo y una explicación visual en cada vídeo."
 
 facebook:
-  hashtags: "#curiosidades #sabiasque #ciencia #reels"
+  hashtags: "#ingenieria #envases #comofunciona #reels"
 
 instagram:
-  hashtags: "#curiosidades #sabiasque #ciencia #reels #datoscuriosos"
+  hashtags: "#ingenieria #envases #disenoindustrial #reels"
 
 tiktok:
-  hashtags: "#curiosidades #sabiasque #ciencia #fyp #datoscuriosos"
+  hashtags: "#ingenieria #envases #comofunciona #disenoindustrial"

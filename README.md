@@ -1,10 +1,41 @@
 # yt-autoshorts
 
-Publica un YouTube Short diario generado íntegramente con IA, con coste ~0 €.
+Genera YouTube Shorts sobre **ingeniería de envases, tapas, cierres y precintos cotidianos**, con narración y edición
+asistidas por IA. Canal: **Curiosidades en 45 segundos** (`@curiosidadesen45s`).
 
 Pipeline: **Gemini** (guion dividido en escenas) → **edge-tts** (voz + tiempos por palabra)
 → **Wikipedia / Wikimedia Commons / Pexels** (candidatos por escena; Gemini elige el que muestra lo narrado)
 → **ffmpeg** (montaje 1080x1920, cada visual sincronizado con su frase, + subtítulos) → **YouTube Data API** (subida) → **GitHub Actions** (cron diario).
+
+## Línea editorial: envases por dentro
+
+Serie: **Nada de este envase está puesto al azar**. Cada vídeo muestra una característica de un único envase,
+el problema que resuelve y su mecanismo. El banco inicial de `script.topic_seeds` propone latas, precintos,
+tapas, bolsas resellables, cartón y válvulas de envases; son temas a investigar, no afirmaciones verificadas.
+No se alterna con astronomía, animales, cuerpo humano ni curiosidades históricas.
+
+- Formatos: explicación de un mecanismo, corrección de un mito documentado o qué cambia al quitar una pieza
+  del mismo envase. No hay listas de objetos ni escenarios fantásticos.
+- Los prompts están en inglés; narración, títulos, subtítulos y metadatos se generan en español neutro.
+- La revisión del modelo es obligatoria: si falla o rechaza el tema, la ejecución falla sin subirlo. No sustituye
+  contrastar fuentes externas ni permite anunciar experimentos o mediciones que no se han realizado.
+- `video.require_matching_visuals: true` impide sustituir una escena sin material adecuado por un plano ajeno.
+  Se permite una foto o diagrama correcto en el gancho. Si falta un visual, no se genera ni se sube el vídeo.
+  Antes de sintetizar la voz se prueban hasta tres temas diferentes dentro del mismo micronicho; si ninguno tiene
+  material adecuado, la ejecución falla sin publicar. Una prueba con `--no-upload` no modifica `history.json`.
+- `channel.strategy` identifica la etapa editorial en `history.json`. Las métricas de los vídeos antiguos no
+  dirigen los nuevos guiones, pero sus temas siguen excluidos para evitar repeticiones.
+- El publicador solo procesa entradas de la estrategia actual. Los vídeos antiguos ya publicados y sus listas
+  se conservan; los antiguos que sigan en oculto no se publican automáticamente.
+- YouTube, Facebook, Instagram y TikTok comparten la misma temática y hashtags específicos.
+
+La descripción del canal y las palabras clave están en `channel.description` y `channel.keywords`.
+El banner se mantiene en `branding/banner.svg` y `branding/banner.png`. Cambiar estos archivos no actualiza
+por sí solo el perfil de YouTube: hay que aplicar también la descripción y el banner al canal conectado.
+Los cambios locales tampoco alteran GitHub Actions hasta publicarlos en su rama de ejecución.
+
+Revisar el piloto por bloques de cuatro vídeos, comparando resultados con la misma antigüedad. No atribuir una
+mejora a la nueva temática por un único pico ni tratar visualizaciones brutas como visualizaciones interesadas.
 
 ## Puesta en marcha (una sola vez)
 
@@ -49,18 +80,18 @@ Cada short se sube en **oculto** (`upload.privacy: "unlisted"`) para que YouTube
 
 Además, en cada subida: contenido sintético declarado, "no es para niños", idioma `es`, contador de "me gusta" visible,
 máximo 5 hashtags (los del tema primero) y el short se añade a la lista de reproducción de su temática (`playlists` en
-`config.yaml`; Gemini elige una y la lista se crea pública si no existe) para encadenar visualizaciones.
+`config.yaml`; la serie actual tiene una sola lista y se crea pública si no existe) para encadenar visualizaciones.
 Las pantallas finales y tarjetas no existen en los Shorts ni en la API.
 
 ## Gancho (primer segundo)
 
-Las analíticas (oct. 2026) muestran que solo el ~43 % de quien ve el short pasa de los primeros segundos (`engagedViews`
-/ `views`), aunque quien se queda lo ve casi entero. Comparado con 14 shorts virales del nicho (12-40 M de vistas):
+Las métricas de la etapa anterior de curiosidades generales no se usan como referencia del nuevo micronicho.
 
-- **Formatos** (`FORMATS` en `autoshorts/script.py`): `dato`, `mito`, `top3` (cuenta atrás "Número tres…"),
-  `que_pasaria` (por etapas "Día 1 / Año 1") e `historia` (arranca en mitad de la acción). Está prohibido abrir
-  preguntando al espectador ("¿Sabías…?", "¿Cuánto crees…?"); el antiguo formato `reto` se ha retirado.
-- **Primera escena en vídeo**: si Pexels tiene vídeos para el gancho, solo se ofrecen vídeos, con zoom marcado.
+- **Formatos** (`FORMATS` en `autoshorts/script.py`): `dato`, `mito` y `que_pasaria`, limitados a un único envase
+  y mecanismo. No se piden saludos, quizzes, listas ni preguntas genéricas al espectador.
+- **Primera escena**: la característica exacta del envase debe ser reconocible desde el primer fotograma.
+  Un vídeo pertinente tiene prioridad, pero no se descarta un diagrama correcto para imponer movimiento.
+- **Explicación**: se aporta información útil desde el principio, sin relleno para retrasar artificialmente la respuesta.
 - **Texto en pantalla**: título grande sin caja, subtítulos de 2 palabras en Anton y rótulos de etapa en amarillo
   (`label` de cada escena). Las fotos se encuadran más grandes en vez de quedar pequeñas sobre fondo difuminado.
 - **Duración**: ~100 palabras y 9 escenas (30-40 s).

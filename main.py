@@ -7,7 +7,7 @@ from pathlib import Path
 import yaml
 
 from autoshorts import facebook, instagram, tiktok
-from autoshorts.footage import gather_visuals
+from autoshorts.footage import MissingVisualsError, gather_visuals
 from autoshorts.insights import build_insights, fetch_performance, format_weights
 from autoshorts.render import render, write_subtitles
 from autoshorts.script import generate_script
@@ -17,6 +17,7 @@ from autoshorts.voice import synthesize
 
 ROOT = Path(__file__).parent
 HISTORY = ROOT / "history.json"
+MAX_TOPIC_ATTEMPTS = 3
 
 
 def main() -> None:
@@ -33,14 +34,25 @@ def main() -> None:
 
     insights, weights = "", {}
     try:
-        performance = fetch_performance(history)
+        strategy_history = [h for h in history if h.get("strategy") == config["channel"]["strategy"]]
+        performance = fetch_performance(strategy_history) if strategy_history else []
         insights, weights = build_insights(performance), format_weights(performance)
         print(f"Estadísticas: {len(performance)} vídeos con datos, pesos por formato {weights}")
     except Exception as e:
         print(f"Sin estadísticas ({type(e).__name__}: {e}); se genera sin ellas")
 
-    script = generate_script(config, history, insights, weights)
-    print(f"Formato: {script.format}\nTema: {script.topic}\nGancho: {script.hook_text}\nTítulo: {script.title}\nLista: {script.playlist}")
+    draft_history = list(history)
+    for attempt in range(MAX_TOPIC_ATTEMPTS):
+        script = generate_script(config, draft_history, insights, weights)
+        print(f"Formato: {script.format}\nTema: {script.topic}\nGancho: {script.hook_text}\nTítulo: {script.title}\nLista: {script.playlist}")
+        try:
+            visuals = gather_visuals(script.scenes, config, workdir)
+            break
+        except MissingVisualsError as error:
+            print(f"Tema descartado por falta de visuales ({attempt + 1}/{MAX_TOPIC_ATTEMPTS}): {error}")
+            if attempt + 1 == MAX_TOPIC_ATTEMPTS:
+                raise
+            draft_history.append({"topic": script.topic})
 
     audio = workdir / "voice.mp3"
     words = synthesize(script.narration, config, audio)
@@ -50,7 +62,6 @@ def main() -> None:
         config, subtitles,
     )
 
-    visuals = gather_visuals(script.scenes, config, workdir)
     output = workdir / "short.mp4"
     render(visuals, words, [scene.text for scene in script.scenes], audio, subtitles, config, workdir, output, ROOT / "music")
     print(f"Vídeo generado: {output}")
@@ -64,7 +75,10 @@ def main() -> None:
     yt_description = f"{script.description}\n\n{yt_hashtags}"
     print(f"Descripción:\n{yt_description}")
 
-    entry = {"date": date.today().isoformat(), "format": script.format, "topic": script.topic, "title": script.title}
+    entry = {
+        "date": date.today().isoformat(), "strategy": config["channel"]["strategy"],
+        "format": script.format, "topic": script.topic, "title": script.title,
+    }
     if not args.no_upload:
         video_id, privacy = upload(output, thumbnail, script.title, yt_description, script.tags, script.playlist, config)
         entry.update(video_id=video_id, privacy=privacy, uploaded_at=datetime.now(timezone.utc).isoformat(timespec="seconds"))
@@ -92,8 +106,9 @@ def main() -> None:
             except Exception as e:
                 print(f"No se pudo subir a TikTok ({type(e).__name__}: {e})")
 
-    history.append(entry)
-    HISTORY.write_text(json.dumps(history, ensure_ascii=False, indent=2), encoding="utf-8")
+    if not args.no_upload:
+        history.append(entry)
+        HISTORY.write_text(json.dumps(history, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
 if __name__ == "__main__":

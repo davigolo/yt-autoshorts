@@ -25,7 +25,8 @@ def main() -> None:
               "Ejecuta scripts/get_token.py y actualiza los secrets.")
         return
     youtube = build("youtube", "v3", credentials=credentials, cache_discovery=False)
-    entries = pending(history)
+    strategy_history = [h for h in history if h.get("strategy") == config["channel"]["strategy"]]
+    entries = pending(strategy_history)
     statuses = fetch_statuses(youtube, [e["video_id"] for e in entries])
     overrides = {"selfDeclaredMadeForKids": False, "containsSyntheticMedia": config["upload"]["contains_synthetic_media"]}
     settings = config["publish"]

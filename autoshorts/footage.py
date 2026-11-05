@@ -16,24 +16,21 @@ IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
 MIN_IMAGE_SIDE = 600
 PEXELS_PER_SCENE = 3
 HOOK_PEXELS = 6
-COMMONS_PER_SCENE = 2
+COMMONS_PER_SCENE = 4
 
-PICK_PROMPT = """Eres editor de vídeo de un short de curiosidades. Para cada escena tienes varias imágenes candidatas
-(miniaturas de fotos o de vídeos de stock). Elige para cada escena la candidata que mejor muestre lo que se dice en
-la narración de esa escena o el sujeto indicado.
-- Valen fotos, cuadros, ilustraciones históricas, grabados, diagramas, retratos o vídeos, siempre que representen
-  lo narrado o el personaje, objeto, lugar o fenómeno que se menciona.
-- Entre varias válidas, prefiere la más clara y llamativa, y un vídeo si muestra de verdad lo narrado.
-- Responde null SOLO si ninguna candidata tiene relación con lo narrado (por ejemplo, una calle cualquiera, una
-  persona disfrazada o un objeto distinto al que se nombra).
-- La escena 0 es el gancho y decide si el espectador desliza: elige un VÍDEO (candidatas que empiezan por "p") con
-  movimiento visible desde el primer fotograma, el sujeto grande y colores vivos. Solo si ningún vídeo tiene relación,
-  elige la imagen más impactante.
+PICK_PROMPT = """Select visuals for a Short explaining one packaging mechanism.
+For each scene, choose only from that scene's candidate IDs.
+- The exact packaging object or feature must be visible and support the narration.
+- A bottle is not evidence of its internal seal; a generic factory does not show a can seam.
+- Do not confuse a can's top with its base, a screw cap with a vacuum lid, or glass with plastic.
+- Photos, diagrams and videos are valid. Prefer clarity and technical accuracy over motion.
+- Return null if no candidate actually shows the required object or feature.
+- For scene 0, prefer motion only when it shows the exact feature. A correct still is better than unrelated footage.
 
-Escenas:
+Scenes:
 {scenes}
 
-Devuelve SOLO JSON: {{"choices": [id de la candidata elegida o null, una por escena y en orden]}}"""
+Return ONLY JSON: {{"choices": ["selected candidate ID or null, one per scene in order"]}}"""
 
 
 @dataclass
@@ -44,6 +41,10 @@ class Candidate:
     thumb_url: str
     url: str
     duration: float = 0.0
+
+
+class MissingVisualsError(RuntimeError):
+    pass
 
 
 def _get(url: str, params: dict, headers: dict | None = None) -> dict:
@@ -74,7 +75,7 @@ def _wiki_candidates(scene: Scene, index: int) -> list[Candidate]:
 def _commons_candidates(scene: Scene, index: int) -> list[Candidate]:
     data = _get(COMMONS_API, {
         "action": "query", "format": "json", "generator": "search", "gsrnamespace": 6,
-        "gsrsearch": f"{scene.subject} filetype:bitmap", "gsrlimit": 6,
+        "gsrsearch": f"{scene.stock} filetype:bitmap", "gsrlimit": 6,
         "prop": "imageinfo", "iiprop": "url|size", "iiurlwidth": 1600,
     })
     pages = sorted(data.get("query", {}).get("pages", {}).values(), key=lambda p: p.get("index", 0))
@@ -115,7 +116,7 @@ def _pexels_candidates(scene: Scene, index: int, min_height: int, used: set[int]
     return out
 
 
-def _collect(scenes: list[Scene], min_height: int) -> list[list[Candidate]]:
+def _collect(scenes: list[Scene], min_height: int, require_matching: bool = False) -> list[list[Candidate]]:
     used: set[int] = set()
     per_scene = []
     for i, scene in enumerate(scenes):
@@ -129,7 +130,7 @@ def _collect(scenes: list[Scene], min_height: int) -> list[list[Candidate]]:
                 found += source()
             except requests.RequestException as e:
                 print(f"Búsqueda fallida en escena {i} ({e})")
-        if i == 0 and any(c.kind == "video" for c in found):
+        if i == 0 and not require_matching and any(c.kind == "video" for c in found):
             found = [c for c in found if c.kind == "video"]
         per_scene.append(found)
     return per_scene
@@ -151,7 +152,10 @@ def _thumbnail(candidate: Candidate, workdir: Path) -> bytes | None:
         return None
 
 
-def _pick(scenes: list[Scene], per_scene: list[list[Candidate]], models: list[str], workdir: Path) -> list[Candidate | None]:
+def _pick(
+    scenes: list[Scene], per_scene: list[list[Candidate]], models: list[str], workdir: Path,
+    require_matching: bool = False,
+) -> list[Candidate | None]:
     by_id = {c.id: c for cands in per_scene for c in cands}
     description = "\n".join(
         f'{i}. Narración: "{s.text}" | Debe verse: {s.subject} | Candidatas: '
@@ -159,16 +163,27 @@ def _pick(scenes: list[Scene], per_scene: list[list[Candidate]], models: list[st
         for i, s in enumerate(scenes)
     )
     contents: list = [PICK_PROMPT.format(scenes=description)]
+    visible_ids: set[str] = set()
     for candidate in by_id.values():
         image = _thumbnail(candidate, workdir)
         if image:
+            visible_ids.add(candidate.id)
             contents += [f"Candidata {candidate.id}:", types.Part.from_bytes(data=image, mime_type="image/jpeg")]
     try:
         choices = generate_json(contents, models)
         if isinstance(choices, dict):
             choices = choices.get("choices", [])
-        return [by_id.get(str(c)) if c else None for c in list(choices)[:len(scenes)]] + [None] * (len(scenes) - len(choices))
+        selected = [by_id.get(str(c)) if c else None for c in list(choices)[:len(scenes)]]
+        selected += [None] * (len(scenes) - len(selected))
+        return [
+            candidate
+            if candidate and candidate.scene == i and (not require_matching or candidate.id in visible_ids)
+            else None
+            for i, candidate in enumerate(selected)
+        ]
     except Exception as e:
+        if require_matching:
+            raise RuntimeError("No se pudo validar la correspondencia visual de las escenas") from e
         print(f"Selección visual no disponible ({type(e).__name__}: {e}); se usa la primera candidata")
         first = [cands[0] if cands else None for cands in per_scene]
         first[0] = next((c for c in per_scene[0] if c.kind == "video"), first[0]) if per_scene else None
@@ -198,10 +213,16 @@ def _download(candidate: Candidate, workdir: Path) -> Path:
 
 
 def gather_visuals(scenes: list[Scene], config: dict, workdir: Path) -> list[Path]:
-    per_scene = _collect(scenes, config["video"]["height"])
-    chosen = _pick(scenes, per_scene, config["script"]["models"], workdir)
+    require_matching = config["video"].get("require_matching_visuals", False)
+    per_scene = _collect(scenes, config["video"]["height"], require_matching)
+    chosen = _pick(scenes, per_scene, config["script"]["models"], workdir, require_matching)
     for i, (scene, candidate) in enumerate(zip(scenes, chosen)):
         print(f"Escena {i} [{scene.subject}] -> {candidate.id if candidate else 'sin imagen adecuada'}")
+    if require_matching:
+        missing = [str(i + 1) for i, candidate in enumerate(chosen) if candidate is None]
+        if missing:
+            raise MissingVisualsError(f"No hay visuales adecuados para las escenas {', '.join(missing)}; no se genera ni se sube el vídeo")
+        return [_download(candidate, workdir) for candidate in chosen]
     filled = _fill_gaps(chosen, per_scene)
     if not any(filled):
         fallback = next((c for cands in per_scene for c in cands), None)

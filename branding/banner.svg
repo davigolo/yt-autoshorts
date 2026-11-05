@@ -18,7 +18,7 @@
   <text x="400" y="535" text-anchor="middle" font-family="DejaVu Sans" font-weight="bold" font-size="270" fill="#FFFFFF">?</text>
 </g>
 </g>
-<text x="860" y="715" font-family="DejaVu Sans" font-weight="bold" font-size="108" fill="#FFFFFF">CURIOSIDADES</text>
-<text x="860" y="830" font-family="DejaVu Sans" font-weight="bold" font-size="96" fill="#FFFFFF">EN <tspan fill="url(#arc)">45s</tspan></text>
-<text x="1265" y="830" font-family="DejaVu Sans" font-size="42" fill="#FFFFFF" fill-opacity="0.85">· un dato sorprendente cada día</text>
+<text x="860" y="665" font-family="DejaVu Sans" font-weight="bold" font-size="92" fill="#FFFFFF">CURIOSIDADES EN 45s</text>
+<text x="860" y="775" font-family="DejaVu Sans" font-weight="bold" font-size="78" fill="url(#arc)">ENVASES POR DENTRO</text>
+<text x="860" y="850" font-family="DejaVu Sans" font-size="36" fill="#FFFFFF" fill-opacity="0.85">Un objeto. Un mecanismo. Una explicación.</text>
 </svg>
