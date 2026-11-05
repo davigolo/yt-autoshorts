@@ -1,0 +1,19 @@
+.github/workflows/daily.yml
+  s_3d9537d35d6692::t_841449e481559d 30-35
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "49282d47fb9aa4f5770f0f8659449dd7006fb373",
+  "prompts": {},
+  "sessions": {
+    "s_3d9537d35d6692": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "f3a79d48-42ff-4751-809b-09f5c8047cc9",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "david <davidglom@ext.inditex.com>"
+    }
+  }
+}
