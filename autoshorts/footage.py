@@ -1,6 +1,6 @@
 import os
 import subprocess
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 import requests
@@ -9,6 +9,7 @@ from google.genai import types
 from autoshorts.script import Scene, generate_json
 
 PEXELS_URL = "https://api.pexels.com/videos/search"
+PEXELS_PHOTOS_URL = "https://api.pexels.com/v1/search"
 WIKI_API = "https://en.wikipedia.org/w/api.php"
 COMMONS_API = "https://commons.wikimedia.org/w/api.php"
 WIKI_HEADERS = {"User-Agent": "yt-autoshorts/1.0 (https://github.com/davigolo/yt-autoshorts)"}
@@ -67,7 +68,7 @@ def _wiki_candidates(scene: Scene, index: int) -> list[Candidate]:
     out = []
     for page in data.get("query", {}).get("pages", {}).values():
         thumb, original = page.get("thumbnail"), page.get("original")
-        if thumb and original and _image_ok(original["source"], thumb["width"], thumb["height"]):
+        if thumb and original and _image_ok(original["source"], original["width"], original["height"]):
             out.append(Candidate(f"w{index}", index, "image", thumb["source"], thumb["source"]))
     return out
 
@@ -116,6 +117,18 @@ def _pexels_candidates(scene: Scene, index: int, min_height: int, used: set[int]
     return out
 
 
+def _pexels_photos(scene: Scene, index: int) -> list[Candidate]:
+    data = _get(
+        PEXELS_PHOTOS_URL, {"query": scene.stock, "per_page": 6},
+        {"Authorization": os.environ["PEXELS_API_KEY"]},
+    )
+    return [
+        Candidate(f"ph{index}_{photo['id']}", index, "image", photo["src"]["medium"], photo["src"]["large2x"])
+        for photo in data.get("photos", [])
+        if min(photo["width"], photo["height"]) >= MIN_IMAGE_SIDE
+    ]
+
+
 def _collect(scenes: list[Scene], min_height: int, require_matching: bool = False) -> list[list[Candidate]]:
     used: set[int] = set()
     per_scene = []
@@ -124,6 +137,7 @@ def _collect(scenes: list[Scene], min_height: int, require_matching: bool = Fals
         for source in (
             lambda: _wiki_candidates(scene, i),
             lambda: _commons_candidates(scene, i),
+            lambda: _pexels_photos(scene, i),
             lambda: _pexels_candidates(scene, i, min_height, used, HOOK_PEXELS if i == 0 else PEXELS_PER_SCENE),
         ):
             try:
@@ -139,6 +153,8 @@ def _collect(scenes: list[Scene], min_height: int, require_matching: bool = Fals
 def _thumbnail(candidate: Candidate, workdir: Path) -> bytes | None:
     raw = workdir / f"thumb_{candidate.id}"
     small = workdir / f"thumb_{candidate.id}.jpg"
+    if small.exists():
+        return small.read_bytes()
     try:
         response = requests.get(candidate.thumb_url, headers=WIKI_HEADERS, timeout=30)
         response.raise_for_status()
@@ -148,8 +164,31 @@ def _thumbnail(candidate: Candidate, workdir: Path) -> bytes | None:
             check=True,
         )
         return small.read_bytes()
-    except (requests.RequestException, subprocess.CalledProcessError):
+    except (requests.RequestException, subprocess.CalledProcessError) as error:
+        print(f"Miniatura no disponible para {candidate.id}: {error}")
         return None
+
+
+def discover_visuals(searches: list[Scene], config: dict, workdir: Path) -> tuple[list[Candidate], list]:
+    candidates = []
+    contents: list = ["Available visual inventory (IDs refer to the attached images):"]
+    seen: set[str] = set()
+    for group in _collect(searches, config["video"]["height"], require_matching=True):
+        for candidate in group:
+            if candidate.url in seen:
+                continue
+            seen.add(candidate.url)
+            image = _thumbnail(candidate, workdir)
+            if image is not None:
+                candidates.append(candidate)
+                contents.extend([
+                    f"Visual {candidate.id} ({candidate.kind}), search: {searches[candidate.scene].stock}",
+                    types.Part.from_bytes(data=image, mime_type="image/jpeg"),
+                ])
+    if not candidates:
+        raise MissingVisualsError("No hay imágenes disponibles para construir el guion")
+    print(f"Inventario visual: {len(candidates)} imágenes disponibles antes de escribir el guion")
+    return candidates, contents
 
 
 def _pick(
@@ -212,9 +251,21 @@ def _download(candidate: Candidate, workdir: Path) -> Path:
     return path
 
 
-def gather_visuals(scenes: list[Scene], config: dict, workdir: Path) -> list[Path]:
+def gather_visuals(
+    scenes: list[Scene], config: dict, workdir: Path, inventory: list[Candidate] | None = None,
+) -> list[Path]:
     require_matching = config["video"].get("require_matching_visuals", False)
-    per_scene = _collect(scenes, config["video"]["height"], require_matching)
+    if inventory is None:
+        per_scene = _collect(scenes, config["video"]["height"], require_matching)
+    else:
+        require_matching = True
+        by_id = {candidate.id: candidate for candidate in inventory}
+        per_scene = []
+        for i, scene in enumerate(scenes):
+            candidate = by_id.get(scene.visual_id)
+            if candidate is None:
+                raise MissingVisualsError(f"La escena {i + 1} solicita una imagen fuera del inventario")
+            per_scene.append([replace(candidate, scene=i, id=f"s{i}_{candidate.id}")])
     chosen = _pick(scenes, per_scene, config["script"]["models"], workdir, require_matching)
     for i, (scene, candidate) in enumerate(zip(scenes, chosen)):
         print(f"Escena {i} [{scene.subject}] -> {candidate.id if candidate else 'sin imagen adecuada'}")

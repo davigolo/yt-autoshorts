@@ -3,8 +3,9 @@
 Genera YouTube Shorts sobre **ingeniería de envases, tapas, cierres y precintos cotidianos**, con narración y edición
 asistidas por IA. Canal: **Curiosidades en 45 segundos** (`@curiosidadesen45s`).
 
-Pipeline: **Gemini** (guion dividido en escenas) → **edge-tts** (voz + tiempos por palabra)
-→ **Wikipedia / Wikimedia Commons / Pexels** (candidatos por escena; Gemini elige el que muestra lo narrado)
+Pipeline: **Wikipedia / Wikimedia Commons / Pexels** (inventario real de fotos y vídeos de un envase)
+→ **Gemini** (guion construido sobre esas imágenes, revisión técnica y validación visual por escena)
+→ **ElevenLabs** (voz + tiempos por carácter; **edge-tts** gratis como respaldo)
 → **ffmpeg** (montaje 1080x1920, cada visual sincronizado con su frase, + subtítulos) → **YouTube Data API** (subida) → **GitHub Actions** (cron diario).
 
 ## Línea editorial: envases por dentro
@@ -21,6 +22,8 @@ No se alterna con astronomía, animales, cuerpo humano ni curiosidades históric
   contrastar fuentes externas ni permite anunciar experimentos o mediciones que no se han realizado.
 - `video.require_matching_visuals: true` impide sustituir una escena sin material adecuado por un plano ajeno.
   Se permite una foto o diagrama correcto en el gancho. Si falta un visual, no se genera ni se sube el vídeo.
+  Se buscan imágenes antes de escribir el guion y cada escena se vincula a una imagen de ese inventario.
+  Una misma imagen correcta puede reutilizarse, sin exigir nueve fotografías distintas de detalles escasos.
   Antes de sintetizar la voz se prueban hasta tres temas diferentes dentro del mismo micronicho; si ninguno tiene
   material adecuado, la ejecución falla sin publicar. Una prueba con `--no-upload` no modifica `history.json`.
 - `channel.strategy` identifica la etapa editorial en `history.json`. Las métricas de los vídeos antiguos no
@@ -54,7 +57,9 @@ mejora a la nueva temática por un único pico ni tratar visualizaciones brutas 
       gh secret set -f .yt.env
       ```
 4. Sube el proyecto a un repo de GitHub y añade en *Settings → Secrets and variables → Actions*:
-   `GEMINI_API_KEY`, `PEXELS_API_KEY`, `YT_CLIENT_ID`, `YT_CLIENT_SECRET`, `YT_REFRESH_TOKEN`.
+   `GEMINI_API_KEY`, `PEXELS_API_KEY`, `ELEVENLABS_API_KEY`, `YT_CLIENT_ID`, `YT_CLIENT_SECRET`, `YT_REFRESH_TOKEN`.
+   `ELEVENLABS_API_KEY` es opcional (la misma cuenta que yt-mysteries): sin ella, sin créditos o si la API falla, la voz sale
+   de edge-tts.
 5. Lanza *Actions → Daily Short → Run workflow* para probar. Después se ejecuta solo cada día a las 18:23, 19:53 y 21:23 UTC.
 
 > ⚠️ Los proyectos de API sin auditar suben los vídeos como **privados**. Solicita la auditoría
@@ -145,7 +150,9 @@ export GEMINI_API_KEY=... PEXELS_API_KEY=...
 
 ## Personalizar
 
-Todo en `config.yaml`: nicho, idioma, voz (`edge-tts --list-voices`), longitud, nº de escenas y privacidad.
+Todo en `config.yaml`: nicho, idioma, voz, longitud, nº de escenas y privacidad. La voz principal es `voice.elevenlabs`
+(`voice_id` de la biblioteca de ElevenLabs, en español latino porque la audiencia es sobre todo de México y EE. UU.);
+`voice.name` es la voz de respaldo de edge-tts (`edge-tts --list-voices`).
 `history.json` guarda los temas publicados para no repetirlos (el workflow lo commitea tras cada subida).
 
 ## Coste
@@ -153,7 +160,8 @@ Todo en `config.yaml`: nicho, idioma, voz (`edge-tts --list-voices`), longitud, 
 | Servicio | Coste |
 |---|---|
 | Gemini Flash (capa gratuita, con modelos de respaldo en `config.yaml`) | 0 € |
-| edge-tts | 0 € |
+| ElevenLabs `eleven_flash_v2_5` (~600 caracteres × 0,5 = ~300 créditos/short; 3 al día = ~27k/mes, compartidos con yt-mysteries). Si quedan menos de `voice.elevenlabs.reserve_credits`, usa edge-tts para no dejar sin voz a los episodios | plan Creator |
+| edge-tts (respaldo) | 0 € |
 | Pexels | 0 € |
 | YouTube Data API (1.600 de 10.000 unidades/día) | 0 € |
 | GitHub Actions (~3-5 min/día) | 0 € en repo público; en privado entra en los 2.000 min/mes gratis |

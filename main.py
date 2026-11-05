@@ -7,10 +7,10 @@ from pathlib import Path
 import yaml
 
 from autoshorts import facebook, instagram, tiktok
-from autoshorts.footage import MissingVisualsError, gather_visuals
+from autoshorts.footage import MissingVisualsError, discover_visuals, gather_visuals
 from autoshorts.insights import build_insights, fetch_performance, format_weights
 from autoshorts.render import render, write_subtitles
-from autoshorts.script import generate_script
+from autoshorts.script import generate_script, generate_visual_searches
 from autoshorts.thumbnail import create_thumbnail, hashtags
 from autoshorts.upload import upload
 from autoshorts.voice import synthesize
@@ -43,16 +43,19 @@ def main() -> None:
 
     draft_history = list(history)
     for attempt in range(MAX_TOPIC_ATTEMPTS):
-        script = generate_script(config, draft_history, insights, weights)
-        print(f"Formato: {script.format}\nTema: {script.topic}\nGancho: {script.hook_text}\nTítulo: {script.title}\nLista: {script.playlist}")
+        topic, searches = generate_visual_searches(config, draft_history)
+        print(f"Búsqueda previa de imágenes: {topic}")
         try:
-            visuals = gather_visuals(script.scenes, config, workdir)
+            inventory, visual_contents = discover_visuals(searches, config, workdir)
+            script = generate_script(config, draft_history, insights, weights, visual_contents)
+            print(f"Formato: {script.format}\nTema: {script.topic}\nGancho: {script.hook_text}\nTítulo: {script.title}\nLista: {script.playlist}")
+            visuals = gather_visuals(script.scenes, config, workdir, inventory)
             break
-        except MissingVisualsError as error:
-            print(f"Tema descartado por falta de visuales ({attempt + 1}/{MAX_TOPIC_ATTEMPTS}): {error}")
+        except (MissingVisualsError, ValueError) as error:
+            print(f"Tema descartado por validación visual o de guion ({attempt + 1}/{MAX_TOPIC_ATTEMPTS}): {error}")
             if attempt + 1 == MAX_TOPIC_ATTEMPTS:
                 raise
-            draft_history.append({"topic": script.topic})
+            draft_history.append({"topic": topic})
 
     audio = workdir / "voice.mp3"
     words = synthesize(script.narration, config, audio)

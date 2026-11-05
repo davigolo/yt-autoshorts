@@ -22,6 +22,31 @@ FORMATS = {
     ),
 }
 
+VISUAL_SEARCH_PROMPT = """Plan a visual search for one packaging-engineering Short.
+Editorial brief: {editorial_brief}
+Candidate subjects: {topic_seeds}
+Excluded topics: {history}
+
+Choose one unused packaging feature that is easy to show in existing photographs.
+Prefer visible cardboard layers, folds, bottle ribs, caps or resealable bag profiles.
+Avoid rare macro shots, invisible forces and hypothetical damage.
+Return three different broad English search queries for this SAME object, each 1-3 words.
+These queries retrieve real images BEFORE the script is written; do not write narration yet.
+Return ONLY JSON:
+{{"topic": "specific object and feature", "searches": [
+  {{"subject": "visible object", "stock": "broad object query", "wiki": "English Wikipedia article or null"}}
+]}}"""
+
+AVAILABLE_VISUALS_RULE = """
+The attached images are the ONLY available visuals. Write the script around what they actually show.
+Choose ONE clearly visible packaging feature from this inventory, not a feature you hope to find later.
+Each scene MUST include "visual_id" with an exact inventory ID. Reuse a correct image across scenes.
+Do not request new images, hidden parts, animations or experiments. The first image must show the feature.
+Narration may explain an invisible mechanism over an honest exterior image, but must not claim it is visible.
+If no image supports an unused topic within the editorial brief, return
+{"rejected": true, "reason": "No suitable unused packaging feature in the available images"}.
+"""
+
 PROMPT = """Write for a YouTube Shorts channel about {niche}.
 Output language: {language}. Audience: {audience}.
 Editorial brief: {editorial_brief}
@@ -105,6 +130,7 @@ class Scene:
     wiki: str | None
     stock: str
     label: str | None = None
+    visual_id: str | None = None
 
 
 @dataclass
@@ -159,15 +185,41 @@ def _pick_format(recent_formats: list[str], weights: dict[str, float]) -> str:
     return random.choices(options, weights=[weights.get(f, 1.0) for f in options])[0]
 
 
-def _fact_check(data: dict, config: dict) -> dict:
-    checked = generate_json(
-        FACT_CHECK_PROMPT.format(
-            language=config["channel"]["language"],
+def generate_visual_searches(config: dict, history: list[dict]) -> tuple[str, list[Scene]]:
+    data = generate_json(
+        VISUAL_SEARCH_PROMPT.format(
             editorial_brief=config["channel"]["editorial_brief"],
-            target_words=config["script"]["target_words"],
-            scenes=config["video"]["scenes"],
-            script=json.dumps(data, ensure_ascii=False),
+            topic_seeds="; ".join(config["script"]["topic_seeds"]),
+            history="; ".join(h["topic"] for h in history[-200:]) or "none",
         ),
+        config["script"]["models"],
+    )
+    if not isinstance(data, dict) or not isinstance(data.get("topic"), str) or not data["topic"].strip():
+        raise ValueError("Plan de búsqueda visual sin tema válido")
+    searches = data.get("searches")
+    if not isinstance(searches, list) or len(searches) != 3:
+        raise ValueError("El plan visual debe contener tres búsquedas")
+    scenes = []
+    for search in searches:
+        if not isinstance(search, dict) or not isinstance(search.get("stock"), str) or not 1 <= len(search["stock"].split()) <= 3:
+            raise ValueError("Consulta de búsqueda visual inválida")
+        if not isinstance(search.get("subject"), str) or not search["subject"].strip():
+            raise ValueError("Búsqueda visual sin objeto válido")
+        scenes.append(Scene(text="", subject=search["subject"], stock=search["stock"], wiki=search.get("wiki") or None))
+    return data["topic"], scenes
+
+
+def _fact_check(data: dict, config: dict, visual_contents: list | None = None) -> dict:
+    prompt = FACT_CHECK_PROMPT.format(
+        language=config["channel"]["language"],
+        editorial_brief=config["channel"]["editorial_brief"],
+        target_words=config["script"]["target_words"],
+        scenes=config["video"]["scenes"],
+        script=json.dumps(data, ensure_ascii=False),
+    )
+    contents = [prompt, AVAILABLE_VISUALS_RULE, *visual_contents] if visual_contents is not None else prompt
+    checked = generate_json(
+        contents,
         config["script"]["models"],
     )
     if isinstance(checked, list):
@@ -181,7 +233,10 @@ def _fact_check(data: dict, config: dict) -> dict:
     return {**data, **checked}
 
 
-def generate_script(config: dict, history: list[dict], insights: str = "", weights: dict[str, float] | None = None) -> Script:
+def generate_script(
+    config: dict, history: list[dict], insights: str = "", weights: dict[str, float] | None = None,
+    visual_contents: list | None = None,
+) -> Script:
     strategy = config["channel"]["strategy"]
     recent = [h for h in history if h.get("strategy") == strategy]
     video_format = _pick_format([h.get("format", "") for h in recent], weights or {})
@@ -196,14 +251,19 @@ def generate_script(config: dict, history: list[dict], insights: str = "", weigh
         history="; ".join(h["topic"] for h in history[-200:]) or "ninguno",
         playlists=", ".join(playlists),
     )
-    data = generate_json(prompt, config["script"]["models"])
+    contents = [prompt, AVAILABLE_VISUALS_RULE, *visual_contents] if visual_contents is not None else prompt
+    data = generate_json(contents, config["script"]["models"])
     if isinstance(data, list):
         data = data[0]
-    data = _fact_check(data, config)
+    if data.get("rejected"):
+        raise ValueError(f"Guion rechazado: {data.get('reason', 'sin explicación')}")
+    data = _fact_check(data, config, visual_contents)
     if data.get("playlist") not in playlists:
         raise ValueError("El guion no pertenece a una lista de la estrategia actual")
     if len(data["scenes"]) != config["video"]["scenes"]:
         raise ValueError("El guion no tiene el número de escenas configurado")
+    if visual_contents is not None and not all(isinstance(s.get("visual_id"), str) and s["visual_id"] for s in data["scenes"]):
+        raise ValueError("El guion no asigna una imagen disponible a cada escena")
     narration = " ".join(s["text"].strip() for s in data["scenes"])
     if len(narration.split()) > config["script"]["target_words"]:
         raise ValueError("El guion supera el máximo de palabras configurado")
@@ -215,7 +275,10 @@ def generate_script(config: dict, history: list[dict], insights: str = "", weigh
         description=data["description"],
         tags=data["tags"][:15],
         scenes=[
-            Scene(text=s["text"], subject=s["subject"], wiki=s.get("wiki") or None, stock=s["stock"], label=s.get("label") or None)
+            Scene(
+                text=s["text"], subject=s["subject"], wiki=s.get("wiki") or None, stock=s["stock"],
+                label=s.get("label") or None, visual_id=s.get("visual_id"),
+            )
             for s in data["scenes"] if s.get("text", "").strip()
         ],
         hashtags=[str(h) for h in data.get("hashtags", [])][:5],

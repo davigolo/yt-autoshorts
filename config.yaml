@@ -42,8 +42,18 @@ script:
     - "The one-way valve on a coffee bag"
 
 voice:
-  name: "es-ES-AlvaroNeural"
+  name: "es-MX-JorgeNeural"
   rate: "+8%"
+  elevenlabs:
+    voice_id: "9F4C8ztpNUmXkdDDbz3J"
+    model_id: "eleven_flash_v2_5"
+    language_code: "es"
+    credits_per_char: 0.5
+    reserve_credits: 20000
+    stability: 0.4
+    similarity_boost: 0.8
+    style: 0.2
+    speed: 1.08
 
 video:
   width: 1080
